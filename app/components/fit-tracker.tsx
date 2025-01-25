@@ -176,9 +176,9 @@ export default function FitTracker() {
   return (
     <div className="container mx-auto p-4">
       <div className="mt-2 flex space-x-4 justify-center">
-        <Card className="w-full max-w-sm">
+        <Card className="w-full max-w-xs">
           <CardHeader>
-            <CardTitle>Total Situps (7days)</CardTitle>
+            <CardTitle className="text-md">Total Situps (7days)</CardTitle>
           </CardHeader>
           <CardContent>
             <div>
@@ -186,9 +186,9 @@ export default function FitTracker() {
             </div>
           </CardContent>
         </Card>
-        <Card className="w-full max-w-sm">
+        <Card className="w-full max-w-xs">
           <CardHeader>
-            <CardTitle>Total Pushups (7days)</CardTitle>
+            <CardTitle className="text-md">Total Pushups (7days)</CardTitle>
           </CardHeader>
           <CardContent>
             <div>
@@ -263,6 +263,7 @@ export default function FitTracker() {
                     selected={date}
                     onSelect={setDate}
                     initialFocus
+                    required
                   />
                 </PopoverContent>
               </Popover>
