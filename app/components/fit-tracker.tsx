@@ -23,6 +23,8 @@ interface FitnessEntry {
   timestamp: Timestamp
 }
 
+//testing
+
 export default function FitTracker() {
   const [users, setUsers] = useState<User[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string>("")
