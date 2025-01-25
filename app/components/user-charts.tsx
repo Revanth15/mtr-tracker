@@ -81,7 +81,7 @@ export default function UserCharts() {
       {users.map((user) => (
         <Card key={user.id} className="w-full">
           <CardHeader>
-            <CardTitle className="text-md">{user.name}'s Progress</CardTitle>
+            <CardTitle className="text-md">{user.name}&apos;s Progress</CardTitle>
           </CardHeader>
           <CardContent>
             {chartData[user.id] && chartData[user.id].length > 0 ? (
