@@ -209,7 +209,7 @@ export default function FitTracker() {
                 <SelectTrigger id="user">
                   <SelectValue placeholder="Select a cadet" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[200px] md:max-h-[300px] lg:max-h-[400px] max-w-[80vw]">
                   {users.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name}
