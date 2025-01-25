@@ -10,6 +10,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { db } from "../firebase"
 import { FaTrashAlt } from "react-icons/fa"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { format } from "date-fns"
 import { collection, query, getDocs, addDoc, orderBy, Timestamp, deleteDoc, doc } from "firebase/firestore"
 
 interface User {
@@ -33,6 +42,11 @@ export default function FitTracker() {
   const [situps, setSitups] = useState<string>("")
   const [pushups, setPushups] = useState<string>("")
   const [entries, setEntries] = useState<FitnessEntry[]>([])
+  const [date, setDate] = useState<Date>()
+
+  const setDefaultDate = () => {
+    setDate(new Date());
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -79,7 +93,7 @@ export default function FitTracker() {
         userId: selectedUserId,
         situps: Number.parseInt(situps),
         pushups: Number.parseInt(pushups),
-        timestamp: Timestamp.now(),
+        timestamp: date ? Timestamp.fromDate(date) : Timestamp.now(),
       }
 
       await addDoc(collection(db, "users", selectedUserId, "fitness_entries"), newEntry)
@@ -101,6 +115,7 @@ export default function FitTracker() {
 
       setSitups("")
       setPushups("")
+      setDate(undefined)
     }
   }
 
@@ -190,7 +205,7 @@ export default function FitTracker() {
           <form onSubmit={handleSubmit} className="space-y-4 mb-6">
             <div className="space-y-2">
               <Label htmlFor="user">Name</Label>
-              <Select value={selectedUserId} onValueChange={setSelectedUserId} required>
+              <Select value={selectedUserId} onValueChange={setSelectedUserId} onOpenChange={setDefaultDate} required>
                 <SelectTrigger id="user">
                   <SelectValue placeholder="Select a cadet" />
                 </SelectTrigger>
@@ -227,6 +242,32 @@ export default function FitTracker() {
                 required
               />
             </div>
+            <p className="text-sm">Date</p>
+            <div className="space-y-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full mt-0 justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+
             <Button type="submit" className="w-full">
               Submit
             </Button>
