@@ -241,12 +241,12 @@ export default function FitTracker() {
   }, [entries]);
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-1">
       <div className="mt-2 flex space-x-4 justify-center">
         <Card className="w-full max-w-xs p-2 shadow-lg rounded-xl border">
           <CardHeader className="text-center pb-1">
             <CardTitle className="text-base font-semibold text-gray-800">
-              Total Situps (7 Days)
+              Total Situps(7D)
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
@@ -288,7 +288,7 @@ export default function FitTracker() {
         <Card className="w-full max-w-xs p-2 shadow-lg rounded-xl border">
           <CardHeader className="text-center pb-1">
             <CardTitle className="text-base font-semibold text-gray-800">
-              Total Pushups (7 Days)
+              Total Pushups(7D)
             </CardTitle>
           </CardHeader>
           <CardContent className="p-2">
@@ -404,112 +404,111 @@ export default function FitTracker() {
               Submit
             </Button>
           </form>
-
-          {chartData.length > 0 && (
-            <Card>
-              <CardHeader className="p-2 sm:p-3 md:p-4">
-                <CardTitle className="text-sm sm:text-base md:text-lg font-semibold">{users.find((u) => u.id === selectedUserId)?.name}&apos;s Progress</CardTitle>
-              </CardHeader>
-              <CardContent className="p-1 sm:p-2 md:p-3">
-                <div className="h-[300px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ChartContainer config={chartConfig}>
-                      <LineChart
-                        accessibilityLayer
-                        data={chartData}
-                        margin={{
-                          top: 10,   
-                          right: 10,
-                          bottom: 10,
-                          left: 2, 
-                        }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="date"
-                          tickLine={false}
-                          axisLine={false}
-                          tickMargin={6}
-                          tickFormatter={(value) => {
-                            const [day, month] = value.split('/');
-                            return `${day}/${month}`;
-                          }}
-                        />
-                        <YAxis />
-                        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                        <Line
-                          dataKey="situps"
-                          type="monotone"
-                          stroke="hsl(174, 100%, 40%)"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                        <Line
-                          dataKey="pushups"
-                          type="monotone"
-                          stroke="hsl(210, 100%, 40%)"
-                          strokeWidth={2}
-                          dot={false}
-                        />
-                        <ChartLegend 
-                          content={<ChartLegendContent />} 
-                          wrapperStyle={{
-                            paddingBottom: '5px', 
-                            paddingTop: '0px', 
-                            fontSize: '12px',
-                          }}  
-                        />
-                      </LineChart>
-                    </ChartContainer>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-
-          <div className="space-y-4">
-            <Card className="w-full rounded-lg shadow-lg mt-2">
-              <CardContent className="p-1 sm:p-2 md:p-3">
-                {entries && entries.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="font-bold">Situps</TableHead>
-                        <TableHead className="font-bold">Pushups</TableHead>
-                        <TableHead className="font-bold">Date</TableHead>
-                        <TableHead className="font-bold"></TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {entries.map((entry) => (
-                        <TableRow key={entry.id}>
-                          <TableCell className="p-2 text-center">{entry.situps}</TableCell>
-                          <TableCell className="p-2 text-center">{entry.pushups}</TableCell>
-                          <TableCell className="p-2 text-center">{entry.timestamp.toDate().toLocaleString()}</TableCell>
-                          <TableCell className="p-2 text-center">
-                            <Button
-                              onClick={() => handleDelete(entry.id)}
-                              className="bg-white hover:bg-gray-50 text-red-600 hover:text-red-800"
-                              aria-label="Delete Entry"
-                            >
-                              <FaTrashAlt />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center">
-                    <Badge variant="secondary">No entries found!</Badge>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
         </CardContent>
       </Card>
+      {chartData.length > 0 && (
+        <Card className="mt-2">
+          <CardHeader className="p-2 sm:p-3 md:p-4">
+            <CardTitle className="text-sm sm:text-base md:text-lg font-semibold">{users.find((u) => u.id === selectedUserId)?.name}&apos;s Progress</CardTitle>
+          </CardHeader>
+          <CardContent className="p-1 sm:p-2 md:p-3">
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={chartConfig}>
+                  <LineChart
+                    accessibilityLayer
+                    data={chartData}
+                    margin={{
+                      top: 10,
+                      right: 5,
+                      bottom: 2,
+                      left: -30,
+                    }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={6}
+                      tickFormatter={(value) => {
+                        const [day, month] = value.split('/');
+                        return `${day}/${month}`;
+                      }}
+                    />
+                    <YAxis />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                    <Line
+                      dataKey="situps"
+                      type="monotone"
+                      stroke="hsl(174, 100%, 40%)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      dataKey="pushups"
+                      type="monotone"
+                      stroke="hsl(210, 100%, 40%)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <ChartLegend 
+                      content={<ChartLegendContent />} 
+                      wrapperStyle={{
+                        paddingBottom: '5px', 
+                        paddingTop: '0px', 
+                        fontSize: '12px',
+                      }}  
+                    />
+                  </LineChart>
+                </ChartContainer>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+
+      <div className="space-y-4">
+        <Card className="w-full rounded-lg shadow-lg mt-2">
+          <CardContent className="p-1 sm:p-2 md:p-3">
+            {entries && entries.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-bold">Situps</TableHead>
+                    <TableHead className="font-bold">Pushups</TableHead>
+                    <TableHead className="font-bold">Date</TableHead>
+                    <TableHead className="font-bold"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {entries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="p-2 text-center">{entry.situps}</TableCell>
+                      <TableCell className="p-2 text-center">{entry.pushups}</TableCell>
+                      <TableCell className="p-2 text-center">{entry.timestamp.toDate().toLocaleString()}</TableCell>
+                      <TableCell className="p-2 text-center">
+                        <Button
+                          onClick={() => handleDelete(entry.id)}
+                          className="bg-white hover:bg-gray-50 text-red-600 hover:text-red-800"
+                          aria-label="Delete Entry"
+                        >
+                          <FaTrashAlt />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center">
+                <Badge variant="secondary">No entries found!</Badge>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

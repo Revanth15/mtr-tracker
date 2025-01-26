@@ -185,7 +185,7 @@ export default function UserCharts() {
       )}
 
       <div className={isLoading ? "blur-sm" : ""}>
-        <div className="container mx-auto p-4">
+        <div className="container mx-auto p-1">
           <ScrollArea className="w-full whitespace-nowrap rounded-xl border">
             <div className="flex justify-center space-x-2">
               {cardData.map((card, index) => (
@@ -206,7 +206,7 @@ export default function UserCharts() {
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
 
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {users.map((user) => (
               <Card key={user.id} className="w-full rounded-lg shadow-lg p-2">
                 <CardHeader className="p-2 sm:p-3 md:p-4">
@@ -214,18 +214,18 @@ export default function UserCharts() {
                     {user.name}&apos;s Progress
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-1 sm:p-2 md:p-3">
+                <CardContent className="p-0 sm:p-2 md:p-3">
                   {chartData[user.id] && chartData[user.id].length > 0 ? (
-                    <div className="h-[200px] w-full">
+                    <div className="w-full">
                       <ChartContainer config={chartConfig}>
                         <LineChart
                           accessibilityLayer
                           data={chartData[user.id]}
                           margin={{
                             top: 10,
-                            right: 10,
-                            bottom: 10,
-                            left: 2,
+                            right: 5,
+                            bottom: 2,
+                            left: -30,
                           }}
                         >
                           <CartesianGrid strokeDasharray="3 3" />
@@ -258,8 +258,8 @@ export default function UserCharts() {
                           <ChartLegend
                             content={<ChartLegendContent />}
                             wrapperStyle={{
-                              paddingBottom: '5px',
-                              paddingTop: '0px',
+                              paddingBottom: '1px',
+                              paddingTop: '1px',
                               fontSize: '12px',
                             }}
                           />
