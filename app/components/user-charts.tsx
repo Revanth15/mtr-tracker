@@ -5,7 +5,7 @@ import { useEffect, useState, useMemo } from "react";
 import { db } from "../firebase";
 import { collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Badge } from "@/components/ui/badge"
 import {
   ChartConfig,
@@ -30,12 +30,20 @@ interface FitnessEntry {
   timestamp: Timestamp;
 }
 
+interface TotalStats {
+  totalEntriesToday: number;
+  totalSitupsToday: number;
+  totalPushupsToday: number;
+  mostSitupsToday: { user: string; count: number };
+  mostPushupsToday: { user: string; count: number };
+}
+
 export default function UserCharts() {
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [users, setUsers] = useState<User[]>([]);
   const [entriesMap, setEntriesMap] = useState<Record<string, FitnessEntry[]>>({});
-  const [totals, setTotals] = useState<any>({
+  const [totals, setTotals] = useState<TotalStats>({
     totalEntriesToday: 0,
     totalSitupsToday: 0,
     totalPushupsToday: 0,
@@ -48,13 +56,13 @@ export default function UserCharts() {
       const interval = setInterval(() => {
         setProgress((prev) => {
           if (prev < 95) {
-            return prev + 1;
+            return prev + 7;
           } else {
             clearInterval(interval);
             return prev;
           }
         });
-      }, 35);
+      }, 300);
 
       setTimeout(() => {
         setProgress(100);
@@ -103,7 +111,7 @@ export default function UserCharts() {
 
         const today = new Date();
         const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-        let todayEntries = entriesList.filter((entry) => entry.timestamp.toDate() >= startOfDay);
+        const todayEntries = entriesList.filter((entry) => entry.timestamp.toDate() >= startOfDay);
         if (todayEntries.length > 0) totalEntries += 1;
 
         todayEntries.forEach((entry) => {
@@ -270,7 +278,7 @@ export default function UserCharts() {
                             axisLine={false}
                             tickMargin={6}
                             tickFormatter={(value) => {
-                              const [day, month, year] = value.split('/');
+                              const [day, month] = value.split('/');
                               return `${day}/${month}`;
                             }}
                           />

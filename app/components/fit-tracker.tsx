@@ -431,7 +431,7 @@ export default function FitTracker() {
                           axisLine={false}
                           tickMargin={6}
                           tickFormatter={(value) => {
-                            const [day, month, year] = value.split('/');
+                            const [day, month] = value.split('/');
                             return `${day}/${month}`;
                           }}
                         />
