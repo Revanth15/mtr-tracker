@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { db } from "../firebase"
 import { FaTrashAlt } from "react-icons/fa"
-import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar as CalendarIcon, TrendingUp, TrendingDown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
@@ -19,6 +19,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Tooltip as ToolTip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { collection, query, getDocs, addDoc, orderBy, Timestamp, deleteDoc, doc } from "firebase/firestore"
@@ -171,44 +177,135 @@ export default function FitTracker() {
   }
 
   const totalsLast7Days = useMemo(() => {
-    const today = new Date()
-    const sevenDaysAgo = new Date(today)
-    sevenDaysAgo.setDate(today.getDate() - 7)
-    
-    return entries.reduce(
-      (acc, entry) => {
-        const entryDate = entry.timestamp.toDate()
+    const today = new Date();
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(today.getDate() - 7);
+    const fourteenDaysAgo = new Date(sevenDaysAgo);
+    fourteenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   
-        if (entryDate >= sevenDaysAgo && entryDate <= today) {
-          acc.pushups += entry.pushups
-          acc.situps += entry.situps
-        }
-        return acc
-      },
-      { pushups: 0, situps: 0 }
-    )
-  }, [entries])
+    const last7DaysTotals = { pushups: 0, situps: 0 };
+  
+    const prev7DaysTotals = { pushups: 0, situps: 0 };
+  
+    entries.forEach((entry) => {
+      const entryDate = entry.timestamp.toDate();
+  
+      if (entryDate >= sevenDaysAgo && entryDate <= today) {
+        last7DaysTotals.pushups += entry.pushups;
+        last7DaysTotals.situps += entry.situps;
+      } else if (entryDate >= fourteenDaysAgo && entryDate < sevenDaysAgo) {
+        prev7DaysTotals.pushups += entry.pushups;
+        prev7DaysTotals.situps += entry.situps;
+      }
+    });
+  
+    const calculatePercentageChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return ((current - previous) / previous) * 100;
+    };
+  
+    const pushupsPercentageChange = calculatePercentageChange(
+      last7DaysTotals.pushups,
+      prev7DaysTotals.pushups
+    );
+  
+    const situpsPercentageChange = calculatePercentageChange(
+      last7DaysTotals.situps,
+      prev7DaysTotals.situps
+    );
+  
+    return {
+      last7DaysTotals,
+      prev7DaysTotals,
+      pushupsPercentageChange,
+      situpsPercentageChange,
+    };
+  }, [entries]);
 
   return (
     <div className="container mx-auto p-4">
       <div className="mt-2 flex space-x-4 justify-center">
-        <Card className="w-full max-w-xs">
-          <CardHeader>
-            <CardTitle className="text-md">Total Situps (7days)</CardTitle>
+        <Card className="w-full max-w-xs p-2 shadow-lg rounded-xl border">
+          <CardHeader className="text-center pb-1">
+            <CardTitle className="text-base font-semibold text-gray-800">
+              Total Situps (7 Days)
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div>
-              <p>{totalsLast7Days.situps}</p>
+          <CardContent className="p-2">
+            <div className="flex flex-col items-center space-y-1">
+              <p className="text-xl font-bold text-blue-600">
+                {totalsLast7Days.last7DaysTotals.situps}
+              </p>
+              <TooltipProvider>
+                <ToolTip>
+                  <TooltipTrigger>
+                    <div className="flex items-center space-x-1 text-gray-500">
+                      {totalsLast7Days.situpsPercentageChange >= 0 ? (
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-red-500" />
+                      )}
+                      <p
+                        className={`text-xs font-medium ${
+                          totalsLast7Days.situpsPercentageChange >= 0
+                            ? "text-green-500"
+                            : "text-red-500"
+                        }`}
+                      >
+                        {totalsLast7Days.situpsPercentageChange.toFixed(2)}%
+                      </p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {totalsLast7Days.last7DaysTotals.situps} reps vs{" "}
+                      {totalsLast7Days.prev7DaysTotals.situps} reps
+                    </p>
+                  </TooltipContent>
+                </ToolTip>
+              </TooltipProvider>
             </div>
           </CardContent>
         </Card>
-        <Card className="w-full max-w-xs">
-          <CardHeader>
-            <CardTitle className="text-md">Total Pushups (7days)</CardTitle>
+        <Card className="w-full max-w-xs p-2 shadow-lg rounded-xl border">
+          <CardHeader className="text-center pb-1">
+            <CardTitle className="text-base font-semibold text-gray-800">
+              Total Pushups (7 Days)
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div>
-              <p>{totalsLast7Days.pushups}</p>
+          <CardContent className="p-2">
+            <div className="flex flex-col items-center space-y-1">
+              <p className="text-xl font-bold text-blue-600">
+                {totalsLast7Days.last7DaysTotals.pushups}
+              </p>
+              <TooltipProvider>
+                <ToolTip>
+                  <TooltipTrigger>
+                    <div className="flex items-center space-x-1 text-gray-500">
+                      {totalsLast7Days.pushupsPercentageChange >= 0 ? (
+                        <TrendingUp className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <TrendingDown className="h-4 w-4 text-red-500" />
+                      )}
+                      <p
+                        className={`text-xs font-medium ${
+                          totalsLast7Days.pushupsPercentageChange >= 0
+                            ? "text-green-500"
+                            : "text-red-500"
+                        }`}
+                      >
+                        {totalsLast7Days.pushupsPercentageChange.toFixed(2)}%
+                      </p>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {totalsLast7Days.last7DaysTotals.pushups} reps vs{" "}
+                      {totalsLast7Days.prev7DaysTotals.pushups} reps
+                    </p>
+                  </TooltipContent>
+                </ToolTip>
+              </TooltipProvider>
             </div>
           </CardContent>
         </Card>
