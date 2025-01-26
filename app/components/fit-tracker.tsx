@@ -25,6 +25,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
 import { format } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
 import { collection, query, getDocs, addDoc, orderBy, Timestamp, deleteDoc, doc } from "firebase/firestore"
@@ -175,6 +183,16 @@ export default function FitTracker() {
       })
     }
   }
+  const chartConfig = {
+    situps: {
+      label: "Situps",
+      color: "hsl(174, 100%, 40%)",
+    },
+    pushups: {
+      label: "Pushups",
+      color: "hsl(210, 100%, 40%)",
+    },
+  } satisfies ChartConfig
 
   const totalsLast7Days = useMemo(() => {
     const today = new Date();
@@ -395,15 +413,54 @@ export default function FitTracker() {
               <CardContent>
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="situps" stroke="#8884d8" name="Situps" />
-                      <Line type="monotone" dataKey="pushups" stroke="#82ca9d" name="Pushups" />
-                    </LineChart>
+                    <ChartContainer config={chartConfig}>
+                      <LineChart
+                        accessibilityLayer
+                        data={chartData}
+                        margin={{
+                          top: 10,   
+                          right: 10,
+                          bottom: 10,
+                          left: 2, 
+                        }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis
+                          dataKey="date"
+                          tickLine={false}
+                          axisLine={false}
+                          tickMargin={6}
+                          tickFormatter={(value) => {
+                            const [day, month, year] = value.split('/');
+                            return `${day}/${month}`;
+                          }}
+                        />
+                        <YAxis />
+                        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                        <Line
+                          dataKey="situps"
+                          type="monotone"
+                          stroke="hsl(174, 100%, 40%)"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                        <Line
+                          dataKey="pushups"
+                          type="monotone"
+                          stroke="hsl(210, 100%, 40%)"
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                        <ChartLegend 
+                          content={<ChartLegendContent />} 
+                          wrapperStyle={{
+                            paddingBottom: '5px', 
+                            paddingTop: '0px', 
+                            fontSize: '12px',
+                          }}  
+                        />
+                      </LineChart>
+                    </ChartContainer>
                   </ResponsiveContainer>
                 </div>
               </CardContent>
@@ -412,40 +469,44 @@ export default function FitTracker() {
 
 
           <div className="space-y-4">
-            {entries && entries.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Situps</TableHead>
-                    <TableHead>Pushups</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {entries.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell>{entry.situps}</TableCell>
-                      <TableCell>{entry.pushups}</TableCell>
-                      <TableCell>{entry.timestamp.toDate().toLocaleString()}</TableCell>
-                      <TableCell>
-                        <Button
-                          onClick={() => handleDelete(entry.id)}
-                          className="bg-white hover:bg-gray-50 text-red-600 hover:text-red-800"
-                          aria-label="Delete Entry"
-                        >
-                          <FaTrashAlt />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center">
-                <Badge variant="secondary">No entries found!</Badge>
-              </div>
-            )}
+            <Card className="w-full rounded-lg shadow-lg mt-2">
+              <CardContent>
+                {entries && entries.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="font-bold">Situps</TableHead>
+                        <TableHead className="font-bold">Pushups</TableHead>
+                        <TableHead className="font-bold">Date</TableHead>
+                        <TableHead className="font-bold"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {entries.map((entry) => (
+                        <TableRow key={entry.id}>
+                          <TableCell>{entry.situps}</TableCell>
+                          <TableCell>{entry.pushups}</TableCell>
+                          <TableCell>{entry.timestamp.toDate().toLocaleString()}</TableCell>
+                          <TableCell>
+                            <Button
+                              onClick={() => handleDelete(entry.id)}
+                              className="bg-white hover:bg-gray-50 text-red-600 hover:text-red-800"
+                              aria-label="Delete Entry"
+                            >
+                              <FaTrashAlt />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center">
+                    <Badge variant="secondary">No entries found!</Badge>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </CardContent>
       </Card>

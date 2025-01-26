@@ -7,6 +7,14 @@ import { collection, getDocs, query, orderBy, Timestamp } from "firebase/firesto
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Badge } from "@/components/ui/badge"
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
 
 interface User {
   id: string
@@ -77,27 +85,75 @@ export default function UserCharts() {
     }, {} as Record<string, { date: string; situps: number; pushups: number }[]>);
   }, [entriesMap]);
 
+  const chartConfig = {
+    situps: {
+      label: "Situps",
+      color: "hsl(174, 100%, 40%)",
+    },
+    pushups: {
+      label: "Pushups",
+      color: "hsl(210, 100%, 40%)",
+    },
+  } satisfies ChartConfig
+
   return (
     <div className="container mx-auto p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {users.map((user) => (
-        <Card key={user.id} className="w-full">
+        <Card key={user.id} className="w-full rounded-lg shadow-lg p-2">
           <CardHeader>
-            <CardTitle className="text-md">{user.name}&apos;s Progress</CardTitle>
+            <CardTitle className="text-lg font-semibold">{user.name}&apos;s Progress</CardTitle>
           </CardHeader>
           <CardContent>
             {chartData[user.id] && chartData[user.id].length > 0 ? (
-              <div className="h-[250px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData[user.id]}>
+              <div className="h-[200px] w-full">
+                <ChartContainer config={chartConfig}>
+                  <LineChart
+                    accessibilityLayer
+                    data={chartData[user.id]}
+                    margin={{
+                      top: 10,  
+                      right: 10,
+                      bottom: 10,
+                      left: 2, 
+                    }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
+                    <XAxis
+                      dataKey="date"
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={6}
+                      tickFormatter={(value) => {
+                        const [day, month, year] = value.split('/');
+                        return `${day}/${month}`;
+                      }}
+                    />
                     <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="situps" stroke="#8884d8" name="Situps" />
-                    <Line type="monotone" dataKey="pushups" stroke="#82ca9d" name="Pushups" />
+                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+                    <Line
+                      dataKey="situps"
+                      type="monotone"
+                      stroke="hsl(174, 100%, 40%)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      dataKey="pushups"
+                      type="monotone"
+                      stroke="hsl(210, 100%, 40%)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <ChartLegend 
+                      content={<ChartLegendContent />} 
+                      wrapperStyle={{
+                        paddingBottom: '5px', 
+                        paddingTop: '0px', 
+                        fontSize: '12px',
+                      }}  
+                    />
                   </LineChart>
-                </ResponsiveContainer>
+                </ChartContainer>
               </div>
             ) : (
               <div className="justify-center text-center">
