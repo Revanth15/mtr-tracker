@@ -16,6 +16,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart"
 import { Progress } from "@/components/ui/progress"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 interface User {
   id: string;
@@ -165,6 +166,14 @@ export default function UserCharts() {
     }, {} as Record<string, { date: string; situps: number; pushups: number }[]>);
   }, [entriesMap]);
 
+  const cardData = [
+    { title: "Total Entries Today", value: totals.totalEntriesToday },
+    { title: "Total Pushups Today", value: totals.totalPushupsToday },
+    { title: "Total Situps Today", value: totals.totalSitupsToday },
+    { title: "Most Pushups Today", value: `${totals.mostPushupsToday.user}: ${totals.mostPushupsToday.count} reps` },
+    { title: "Most Situps Today", value: `${totals.mostSitupsToday.user}: ${totals.mostSitupsToday.count} reps` },
+  ];
+
   return (
     <div className={`relative ${isLoading ? "overflow-hidden" : ""}`}>
       {isLoading && (
@@ -176,88 +185,36 @@ export default function UserCharts() {
       )}
 
       <div className={isLoading ? "blur-sm" : ""}>
-        {/* Your main content goes here, this will be blurred during loading */}
         <div className="container mx-auto p-4">
-          <div className="mt-2 flex justify-center space-x-2">
-            <Card className="w-full max-w-xs p-1 shadow-lg rounded-xl border">
-              <CardHeader className="text-center pt-1 pb-1">
-                <CardTitle className="text-base font-semibold text-gray-800">
-                  Total Entries Today
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-1">
-                <div className="flex flex-col items-center space-y-1">
-                  <p className="text-sm font-semibold text-blue-600">{totals.totalEntriesToday}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="w-full max-w-xs p-1 shadow-lg rounded-xl border">
-              <CardHeader className="text-center pt-1 pb-1">
-                <CardTitle className="text-base font-semibold text-gray-800">
-                  Total Pushups Today
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-1">
-                <div className="flex flex-col items-center space-y-1">
-                  <p className="text-sm font-semibold text-blue-600">{totals.totalPushupsToday}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="w-full max-w-xs p-1 shadow-lg rounded-xl border">
-              <CardHeader className="text-center pt-1 pb-1">
-                <CardTitle className="text-base font-semibold text-gray-800">
-                  Total Situps Today
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-1">
-                <div className="flex flex-col items-center space-y-1">
-                  <p className="text-sm font-semibold text-blue-600">{totals.totalSitupsToday}</p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Add the other two cards here */}
-            <Card className="w-full max-w-xs p-1 shadow-lg rounded-xl border">
-              <CardHeader className="text-center pt-1 pb-1">
-                <CardTitle className="text-base font-semibold text-gray-800">
-                  Most Pushups Today
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-1">
-                <div className="flex flex-col items-center space-y-1">
-                  <p className="text-sm font-semibold text-blue-600">
-                    {totals.mostPushupsToday.user}: {totals.mostPushupsToday.count} reps
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="w-full max-w-xs p-1 shadow-lg rounded-xl border">
-              <CardHeader className="text-center pt-1 pb-1">
-                <CardTitle className="text-base font-semibold text-gray-800">
-                  Most Situps Today
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-1">
-                <div className="flex flex-col items-center space-y-1">
-                  <p className="text-sm font-semibold text-blue-600">
-                    {totals.mostSitupsToday.user}: {totals.mostSitupsToday.count} reps
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
+          <ScrollArea className="w-full whitespace-nowrap rounded-xl border">
+            <div className="flex justify-center space-x-2">
+              {cardData.map((card, index) => (
+                <Card key={index} className="w-full max-w-xs p-1 shadow-lg rounded-xl border">
+                  <CardHeader className="text-center pt-1 pb-1">
+                    <CardTitle className="text-base font-semibold text-gray-800">
+                      {card.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-1">
+                    <div className="flex flex-col items-center space-y-1">
+                      <p className="text-sm font-semibold text-blue-600">{card.value}</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
 
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {users.map((user) => (
               <Card key={user.id} className="w-full rounded-lg shadow-lg p-2">
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">{user.name}&apos;s Progress</CardTitle>
+                <CardHeader className="p-2 sm:p-3 md:p-4">
+                  <CardTitle className="text-sm sm:text-base md:text-lg font-semibold">
+                    {user.name}&apos;s Progress
+                  </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="p-1 sm:p-2 md:p-3">
                   {chartData[user.id] && chartData[user.id].length > 0 ? (
                     <div className="h-[200px] w-full">
                       <ChartContainer config={chartConfig}>
@@ -318,6 +275,7 @@ export default function UserCharts() {
               </Card>
             ))}
           </div>
+
         </div>
       </div>
     </div>

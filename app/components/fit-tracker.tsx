@@ -407,10 +407,10 @@ export default function FitTracker() {
 
           {chartData.length > 0 && (
             <Card>
-              <CardHeader>
-                <CardTitle>{users.find((u) => u.id === selectedUserId)?.name}&apos;s Progress</CardTitle>
+              <CardHeader className="p-2 sm:p-3 md:p-4">
+                <CardTitle className="text-sm sm:text-base md:text-lg font-semibold">{users.find((u) => u.id === selectedUserId)?.name}&apos;s Progress</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-1 sm:p-2 md:p-3">
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <ChartContainer config={chartConfig}>
@@ -470,7 +470,7 @@ export default function FitTracker() {
 
           <div className="space-y-4">
             <Card className="w-full rounded-lg shadow-lg mt-2">
-              <CardContent>
+              <CardContent className="p-1 sm:p-2 md:p-3">
                 {entries && entries.length > 0 ? (
                   <Table>
                     <TableHeader>
@@ -484,10 +484,10 @@ export default function FitTracker() {
                     <TableBody>
                       {entries.map((entry) => (
                         <TableRow key={entry.id}>
-                          <TableCell>{entry.situps}</TableCell>
-                          <TableCell>{entry.pushups}</TableCell>
-                          <TableCell>{entry.timestamp.toDate().toLocaleString()}</TableCell>
-                          <TableCell>
+                          <TableCell className="p-2 text-center">{entry.situps}</TableCell>
+                          <TableCell className="p-2 text-center">{entry.pushups}</TableCell>
+                          <TableCell className="p-2 text-center">{entry.timestamp.toDate().toLocaleString()}</TableCell>
+                          <TableCell className="p-2 text-center">
                             <Button
                               onClick={() => handleDelete(entry.id)}
                               className="bg-white hover:bg-gray-50 text-red-600 hover:text-red-800"
