@@ -11,6 +11,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { db } from "../firebase"
 import { FaTrashAlt } from "react-icons/fa"
 import { Calendar as CalendarIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
 import {
@@ -19,6 +20,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { format } from "date-fns"
+import { useToast } from "@/hooks/use-toast"
 import { collection, query, getDocs, addDoc, orderBy, Timestamp, deleteDoc, doc } from "firebase/firestore"
 
 interface User {
@@ -34,8 +36,6 @@ interface FitnessEntry {
   timestamp: Timestamp
 }
 
-//testing
-
 export default function FitTracker() {
   const [users, setUsers] = useState<User[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string>("")
@@ -47,6 +47,8 @@ export default function FitTracker() {
   const setDefaultDate = () => {
     setDate(new Date());
   };
+
+  const { toast } = useToast()
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -115,6 +117,10 @@ export default function FitTracker() {
 
       setSitups("")
       setPushups("")
+      toast({
+        duration: 2000,
+        title: "MTR added!"
+      })
       setDate(undefined)
     }
   }
@@ -148,8 +154,19 @@ export default function FitTracker() {
           }) as unknown as FitnessEntry,
       )
       setEntries(entriesList)
+      toast({
+        duration: 2000,
+        variant: "destructive",
+        title: "MTR deleted!"
+      })
     } catch (error) {
       console.error("Error deleting entry: ", error)
+      toast({
+        duration: 2000,
+        variant: "destructive",
+        title: "Error!",
+        description: `Error deleting record: ${error}`
+      })
     }
   }
 
@@ -162,7 +179,6 @@ export default function FitTracker() {
       (acc, entry) => {
         const entryDate = entry.timestamp.toDate()
   
-        // If the entry is within the past 7 days
         if (entryDate >= sevenDaysAgo && entryDate <= today) {
           acc.pushups += entry.pushups
           acc.situps += entry.situps
@@ -329,7 +345,9 @@ export default function FitTracker() {
                 </TableBody>
               </Table>
             ) : (
-              <p className="text-center">No entries found!</p>
+              <div className="text-center">
+                <Badge variant="secondary">No entries found!</Badge>
+              </div>
             )}
           </div>
         </CardContent>

@@ -6,6 +6,7 @@ import { db } from "../firebase";
 import { collection, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Badge } from "@/components/ui/badge"
 
 interface User {
   id: string
@@ -99,7 +100,9 @@ export default function UserCharts() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <p className="text-center text-xs text-muted">No entries found for {user.name}</p>
+              <div className="justify-center text-center">
+                <Badge variant="secondary">No entries found!</Badge>
+              </div>
             )}
           </CardContent>
         </Card>
