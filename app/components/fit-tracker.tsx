@@ -407,7 +407,7 @@ export default function FitTracker() {
         </CardContent>
       </Card>
       {chartData.length > 0 && (
-        <Card className="mt-2">
+        <Card className="mt-2 w-full max-w-4xl mx-auto">
           <CardHeader className="p-2 sm:p-3 md:p-4">
             <CardTitle className="text-sm sm:text-base md:text-lg font-semibold">{users.find((u) => u.id === selectedUserId)?.name}&apos;s Progress</CardTitle>
           </CardHeader>
@@ -470,7 +470,7 @@ export default function FitTracker() {
 
 
       <div className="space-y-4">
-        <Card className="w-full rounded-lg shadow-lg mt-2">
+        <Card className="mt-2 w-full max-w-4xl mx-auto">
           <CardContent className="p-1 sm:p-2 md:p-3">
             {entries && entries.length > 0 ? (
               <Table>
