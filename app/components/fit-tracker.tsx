@@ -380,7 +380,7 @@ export default function FitTracker() {
                 <PopoverContent className="w-md p-0">
                   <Command>
                     <CommandInput placeholder="Search cadet..." className="h-9" />
-                    <CommandList>
+                    <CommandList className="max-h-[250px]">
                       <CommandEmpty>No cadet found.</CommandEmpty>
                       <CommandGroup>
                         {users.map((user) => (
@@ -588,7 +588,7 @@ export default function FitTracker() {
               <PopoverContent className="w-md p-0">
                 <Command>
                   <CommandInput placeholder="Search user..." className="h-9" />
-                  <CommandList>
+                  <CommandList className="max-h-[250px]">
                     <CommandEmpty>No user found.</CommandEmpty>
                     <CommandGroup>
                       {users.map((user) => (
