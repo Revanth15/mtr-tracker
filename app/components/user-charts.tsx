@@ -15,6 +15,11 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { Progress } from "@/components/ui/progress"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
@@ -37,6 +42,7 @@ interface TotalStats {
   totalPushupsToday: number;
   mostSitupsToday: { user: string; count: number };
   mostPushupsToday: { user: string; count: number };
+  usersWithoutEntriesToday: string[];
 }
 
 export default function UserCharts() {
@@ -50,6 +56,7 @@ export default function UserCharts() {
     totalPushupsToday: 0,
     mostSitupsToday: { user: "", count: 0 },
     mostPushupsToday: { user: "", count: 0 },
+    usersWithoutEntriesToday: []
   });
 
   useEffect(() => {
@@ -96,7 +103,8 @@ export default function UserCharts() {
       let totalPushups = 0;
       let mostSitups = { user: "", count: 0 };
       let mostPushups = { user: "", count: 0 };
-
+      const usersWithoutEntriesToday: string[] = [];
+  
       for (const user of users) {
         const entriesQuery = query(
           collection(db, "users", user.id, "fitness_entries"),
@@ -107,14 +115,19 @@ export default function UserCharts() {
           id: doc.id,
           ...doc.data(),
         })) as FitnessEntry[];
-
+  
         entries[user.id] = entriesList;
-
+  
         const today = new Date();
         const startOfDay = new Date(today.setHours(0, 0, 0, 0));
         const todayEntries = entriesList.filter((entry) => entry.timestamp.toDate() >= startOfDay);
-        if (todayEntries.length > 0) totalEntries += 1;
-
+        
+        if (todayEntries.length > 0) {
+          totalEntries += 1;
+        } else {
+          usersWithoutEntriesToday.push(user.name); // Track users who haven't submitted an entry today
+        }
+  
         todayEntries.forEach((entry) => {
           totalSitups += entry.situps;
           totalPushups += entry.pushups;
@@ -126,7 +139,7 @@ export default function UserCharts() {
           }
         });
       }
-
+  
       setEntriesMap(entries);
       setTotals({
         totalEntriesToday: totalEntries,
@@ -134,13 +147,15 @@ export default function UserCharts() {
         totalPushupsToday: totalPushups,
         mostSitupsToday: mostSitups,
         mostPushupsToday: mostPushups,
+        usersWithoutEntriesToday,
       });
     };
-
+  
     if (users.length > 0) {
       fetchEntries();
     }
   }, [users]);
+  
 
   const chartConfig = {
     situps: {
@@ -190,17 +205,36 @@ export default function UserCharts() {
             <div className="flex justify-center space-x-2">
               {cardData.map((card, index) => (
                 <Card key={index} className="w-full max-w-xs p-1 shadow-lg rounded-xl border">
-                  <CardHeader className="text-center pt-1 pb-1">
+                <CardHeader className="text-center pt-1 pb-1">
+                  {card.title === "Total Entries Today" && totals.usersWithoutEntriesToday.length > 0 ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="text-base font-semibold text-gray-800">
+                          {card.title}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-2 ml-2 w-48 text-sm">
+                        <p className="font-semibold text-xs text-gray-700">Lazy mofos who didnt submit</p>
+                        <ul className="list-decimal pl-4 text-gray-600 text-[10px]">
+                          {totals.usersWithoutEntriesToday.map((user, i) => (
+                            <li key={i}>{user}</li>
+                          ))}
+                        </ul>
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
                     <CardTitle className="text-base font-semibold text-gray-800">
                       {card.title}
                     </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-1">
-                    <div className="flex flex-col items-center space-y-1">
-                      <p className="text-sm font-semibold text-blue-600">{card.value}</p>
-                    </div>
-                  </CardContent>
-                </Card>
+                  )}
+                </CardHeader>
+                <CardContent className="p-1">
+                  <div className="flex flex-col items-center space-y-1">
+                    <p className="text-sm font-semibold text-blue-600">{card.value}</p>
+                  </div>
+                </CardContent>
+              </Card>
+              
               ))}
             </div>
             <ScrollBar orientation="horizontal" />
