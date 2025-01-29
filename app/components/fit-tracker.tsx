@@ -5,15 +5,24 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
 import { db } from "../firebase"
 import { FaTrashAlt } from "react-icons/fa"
-import { Calendar as CalendarIcon, TrendingUp, TrendingDown } from "lucide-react"
+import { Calendar as CalendarIcon, TrendingUp, TrendingDown,Check, ChevronsUpDown, XIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Popover,
   PopoverContent,
@@ -57,26 +66,47 @@ export default function FitTracker() {
   const [pushups, setPushups] = useState<string>("")
   const [entries, setEntries] = useState<FitnessEntry[]>([])
   const [date, setDate] = useState<Date>()
-
-  const setDefaultDate = () => {
-    setDate(new Date());
-  };
+  const [userName, setUserName] = useState("John Doe");
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [defaultComboBoxOpen, setDefaultComboBoxOpen] = useState(false)
+  const [selectComboBoxOpen, setSelectComboBoxOpen] = useState(false)
+  const [alertDialogOpen, setAlertDialogOpen] = useState(false)
+  const [entryIdToDelete, setEntryIdToDelete] = useState<string | null>(null)
 
   const { toast } = useToast()
 
+  const handleUserSelection = (userId: string) => {
+    setSelectedUserId(userId);
+    localStorage.setItem("selectedUserId", userId);
+    // setIsDialogOpen(false);
+  };
+
   useEffect(() => {
     const fetchUsers = async () => {
-      const usersCollection = collection(db, "users")
-      const userSnapshot = await getDocs(usersCollection)
+      const usersCollection = collection(db, "users");
+      const userSnapshot = await getDocs(usersCollection);
       const userList = userSnapshot.docs.map((doc) => ({
         id: doc.id,
         name: doc.data().name,
-      }))
-      setUsers(userList)
-    }
-
-    fetchUsers()
-  }, [])
+      }));
+      
+      setUsers(userList);
+      setDate(new Date());
+  
+      const savedUserId = localStorage.getItem("selectedUserId");
+      if (savedUserId && userList.some(user => user.id === savedUserId)) {
+        setSelectedUserId(savedUserId);
+        const username  = userList.find((u) => u.id === savedUserId)?.name;
+        if (username) {
+          setUserName(username)
+        }
+      } else {
+        setIsDialogOpen(true);
+      }
+    };
+  
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     const fetchEntries = async () => {
@@ -154,7 +184,6 @@ export default function FitTracker() {
       const entryRef = doc(db, "users", selectedUserId, "fitness_entries", entryId)
       await deleteDoc(entryRef)
   
-      // Refresh the entries list after deletion
       const entriesQuery = query(
         collection(db, "users", selectedUserId, "fitness_entries"),
         orderBy("timestamp", "desc"),
@@ -334,20 +363,44 @@ export default function FitTracker() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-            <div className="space-y-2">
+            <div className="flex flex-col space-y-2">
               <Label htmlFor="user">Name</Label>
-              <Select value={selectedUserId} onValueChange={setSelectedUserId} onOpenChange={setDefaultDate} required>
-                <SelectTrigger id="user">
-                  <SelectValue placeholder="Select a cadet" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px] md:max-h-[300px] lg:max-h-[400px] max-w-[80vw]">
-                  {users.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={selectComboBoxOpen} onOpenChange={setSelectComboBoxOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={selectComboBoxOpen}
+                    className=" justify-between"
+                  >
+                    {selectedUserId ? users.find((user) => user.id === selectedUserId)?.name: "Select a cadet"}
+                    <ChevronsUpDown className="opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-md p-0">
+                  <Command>
+                    <CommandInput placeholder="Search cadet..." className="h-9" />
+                    <CommandList>
+                      <CommandEmpty>No cadet found.</CommandEmpty>
+                      <CommandGroup>
+                        {users.map((user) => (
+                          <CommandItem
+                            key={user.id}
+                            value={user.name}
+                            onSelect={() => {
+                              setSelectedUserId(user.id);
+                              setSelectComboBoxOpen(false);
+                            }}
+                          >
+                            {user.name}
+                            <Check className={user.id === selectedUserId ? "ml-auto opacity-100" : "ml-auto opacity-0"} />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label htmlFor="situps">Situps</Label>
@@ -476,21 +529,23 @@ export default function FitTracker() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="font-bold text-center">Date</TableHead>
                     <TableHead className="font-bold">Situps</TableHead>
                     <TableHead className="font-bold">Pushups</TableHead>
-                    <TableHead className="font-bold">Date</TableHead>
                     <TableHead className="font-bold"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {entries.map((entry) => (
                     <TableRow key={entry.id}>
+                      <TableCell className="p-2 text-center">{entry.timestamp.toDate().toLocaleString()}</TableCell>
                       <TableCell className="p-2 text-center">{entry.situps}</TableCell>
                       <TableCell className="p-2 text-center">{entry.pushups}</TableCell>
-                      <TableCell className="p-2 text-center">{entry.timestamp.toDate().toLocaleString()}</TableCell>
                       <TableCell className="p-2 text-center">
                         <Button
-                          onClick={() => handleDelete(entry.id)}
+                          onClick={() => {
+                            setEntryIdToDelete(entry.id); 
+                            setAlertDialogOpen(true);}}
                           className="bg-white hover:bg-gray-50 text-red-600 hover:text-red-800"
                           aria-label="Delete Entry"
                         >
@@ -509,6 +564,87 @@ export default function FitTracker() {
           </CardContent>
         </Card>
       </div>
+      <div className="fixed bottom-4 right-4 z-50 bg-gray-50 text-black text-[8px] p-1 rounded shadow-lg cursor-pointer" onClick={() => setIsDialogOpen(true)}>
+        <span className="font-semibold">{userName}</span>
+      </div>
+      <Dialog open={isDialogOpen}>
+        <DialogContent className="w-full max-w-[95%] sm:max-w-md rounded-lg">
+          <DialogHeader>
+            <DialogTitle>Select Your Default User</DialogTitle>
+            <DialogClose onClick={() => setIsDialogOpen(false)} className="absolute top-3 right-4 z-50 text-gray-600">
+              <XIcon className="h-3 w-4" />
+            </DialogClose>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Popover open={defaultComboBoxOpen} onOpenChange={setDefaultComboBoxOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={defaultComboBoxOpen} className="w-full justify-between">
+                  {selectedUserId
+                    ? users.find((user) => user.id === selectedUserId)?.name
+                    : "Select a user..."}
+                  <ChevronsUpDown className="opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-md p-0">
+                <Command>
+                  <CommandInput placeholder="Search user..." className="h-9" />
+                  <CommandList>
+                    <CommandEmpty>No user found.</CommandEmpty>
+                    <CommandGroup>
+                      {users.map((user) => (
+                        <CommandItem
+                          key={user.id}
+                          value={user.name}
+                          onSelect={() => {
+                            handleUserSelection(user.id)
+                            setDefaultComboBoxOpen(false)
+                          }}
+                        >
+                          {user.name}
+                          <Check className={`ml-auto ${selectedUserId === user.id ? "opacity-100" : "opacity-0"}`} />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsDialogOpen(false)} disabled={!selectedUserId}>
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={alertDialogOpen}>
+        <AlertDialogContent className="w-full max-w-sm md:max-w-md rounded-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your
+              entry and remove the data!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {setEntryIdToDelete(null);setAlertDialogOpen(false)}}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+            className="bg-red-600 hover:bg-red-500"
+              onClick={() => {
+                if (entryIdToDelete) {
+                  handleDelete(entryIdToDelete)
+                  setAlertDialogOpen(false)
+                }
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
