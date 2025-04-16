@@ -580,7 +580,7 @@ export default function FitTracker() {
                     <Tabs value={selectedTrainingType} onValueChange={(value: string) => setSelectedTrainingType(value as TrainingType)}>
                         <TabsList className="grid w-full grid-cols-2 mb-4">
                             <TabsTrigger value="maxReps">Max Reps (60s)</TabsTrigger>
-                            <TabsTrigger value="timed">Time for 60 Reps</TabsTrigger>
+                            <TabsTrigger value="timed">Timed 60 Reps</TabsTrigger>
                         </TabsList>
 
                         {/* --- FORM --- */}
