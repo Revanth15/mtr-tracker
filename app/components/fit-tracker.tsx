@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { db } from "../firebase";
 import { FaTrashAlt } from "react-icons/fa";
-import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Check, ChevronsUpDown, XIcon, Clock } from "lucide-react"; // Added Clock
+import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Check, ChevronsUpDown, XIcon } from "lucide-react"; // Added Clock
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";

@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from "react"; // Import React
+import React, { useEffect, useState, useMemo } from "react";
 import { db } from "../firebase";
-import { collection, getDocs, query, orderBy, Timestamp, where, limit } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, Timestamp, where } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Badge } from "@/components/ui/badge";
