@@ -1,651 +1,864 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts"
-import { db } from "../firebase"
-import { FaTrashAlt } from "react-icons/fa"
-import { Calendar as CalendarIcon, TrendingUp, TrendingDown,Check, ChevronsUpDown, XIcon } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import { Calendar } from "@/components/ui/calendar"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog"
+import React, { useState, useEffect, useMemo } from "react"; // Import React
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { db } from "../firebase";
+import { FaTrashAlt } from "react-icons/fa";
+import { Calendar as CalendarIcon, TrendingUp, TrendingDown, Check, ChevronsUpDown, XIcon, Clock } from "lucide-react"; // Added Clock
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import {
-  Dialog,
-  DialogContent,
-  DialogClose,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogClose,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
 import {
-  Tooltip as ToolTip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+    Tooltip as ToolTip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
-  ChartConfig,
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
-import { format } from "date-fns"
-import { useToast } from "@/hooks/use-toast"
-import { collection, query, getDocs, addDoc, orderBy, Timestamp, deleteDoc, doc } from "firebase/firestore"
+    ChartConfig,
+    ChartContainer,
+    ChartLegend,
+    ChartLegendContent,
+    ChartTooltip,
+    ChartTooltipContent,
+} from "@/components/ui/chart";
+// Import Tabs components
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { collection, query, getDocs, addDoc, orderBy, Timestamp, deleteDoc, doc } from "firebase/firestore";
 
+// --- Interfaces ---
 interface User {
-  id: string
-  name: string
+    id: string;
+    name: string;
 }
 
-interface FitnessEntry {
-  id: string
-  userId: string
-  situps: number
-  pushups: number
-  timestamp: Timestamp
+// For Max Reps (Existing)
+interface FitnessEntryMaxReps {
+    id: string;
+    type: 'maxReps'; // Add type identifier
+    userId: string;
+    situps: number;
+    pushups: number;
+    timestamp: Timestamp;
 }
+
+// For Timed Reps (New)
+interface FitnessEntryTimed {
+    id: string;
+    type: 'timed'; // Add type identifier
+    userId: string;
+    situpTime: number; // Total seconds
+    pushupTime: number; // Total seconds
+    timestamp: Timestamp;
+}
+
+// Union type for entries state
+type FitnessEntry = FitnessEntryMaxReps | FitnessEntryTimed;
+
+// Training type selection
+type TrainingType = 'maxReps' | 'timed';
+
+// --- Helper Function ---
+const formatSecondsToMMSS = (totalSeconds: number): string => {
+    if (isNaN(totalSeconds) || totalSeconds < 0) return "00:00";
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
 
 export default function FitTracker() {
-  const [users, setUsers] = useState<User[]>([])
-  const [selectedUserId, setSelectedUserId] = useState<string>("")
-  const [situps, setSitups] = useState<string>("")
-  const [pushups, setPushups] = useState<string>("")
-  const [entries, setEntries] = useState<FitnessEntry[]>([])
-  const [date, setDate] = useState<Date>()
-  const [userName, setUserName] = useState("John Doe");
-  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
-  const [defaultComboBoxOpen, setDefaultComboBoxOpen] = useState(false)
-  const [selectComboBoxOpen, setSelectComboBoxOpen] = useState(false)
-  const [alertDialogOpen, setAlertDialogOpen] = useState(false)
-  const [entryIdToDelete, setEntryIdToDelete] = useState<string | null>(null)
+    const [users, setUsers] = useState<User[]>([]);
+    const [selectedUserId, setSelectedUserId] = useState<string>("");
+    const [userName, setUserName] = useState("..."); // Default loading name
 
-  const { toast } = useToast()
+    // State for selected training type
+    const [selectedTrainingType, setSelectedTrainingType] = useState<TrainingType>('maxReps');
 
-  const handleUserSelection = (userId: string) => {
-    setSelectedUserId(userId);
-    localStorage.setItem("selectedUserId", userId);
-    // setIsDialogOpen(false);
-  };
+    // State for Max Reps inputs
+    const [situps, setSitups] = useState<string>("");
+    const [pushups, setPushups] = useState<string>("");
 
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const usersCollection = collection(db, "users");
-      const userSnapshot = await getDocs(usersCollection);
-      const userList = userSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        name: doc.data().name,
-      }));
-      
-      setUsers(userList);
-      setDate(new Date());
-  
-      const savedUserId = localStorage.getItem("selectedUserId");
-      if (savedUserId && userList.some(user => user.id === savedUserId)) {
-        setSelectedUserId(savedUserId);
-        const username  = userList.find((u) => u.id === savedUserId)?.name;
-        if (username) {
-          setUserName(username)
+    // State for Timed inputs (MM:SS)
+    const [situpMinutes, setSitupMinutes] = useState<string>("");
+    const [situpSeconds, setSitupSeconds] = useState<string>("");
+    const [pushupMinutes, setPushupMinutes] = useState<string>("");
+    const [pushupSeconds, setPushupSeconds] = useState<string>("");
+
+    // State for entries (now holds union type)
+    const [entries, setEntries] = useState<FitnessEntry[]>([]);
+    const [date, setDate] = useState<Date>(new Date()); // Default to today
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+
+    // Dialog/Popover states
+    const [isUserSelectDialogOpen, setIsUserSelectDialogOpen] = useState<boolean>(false);
+    const [defaultComboBoxOpen, setDefaultComboBoxOpen] = useState(false);
+    const [selectComboBoxOpen, setSelectComboBoxOpen] = useState(false);
+    const [alertDialogOpen, setAlertDialogOpen] = useState(false);
+    const [entryIdToDelete, setEntryIdToDelete] = useState<string | null>(null);
+
+    const { toast } = useToast();
+
+    // --- User Handling ---
+    const handleUserSelection = (userId: string) => {
+        const selectedUser = users.find(u => u.id === userId);
+        if (selectedUser) {
+            setSelectedUserId(userId);
+            setUserName(selectedUser.name);
+            localStorage.setItem("selectedUserId", userId);
+            localStorage.setItem("selectedUserName", selectedUser.name); // Store name too
         }
-      } else {
-        setIsDialogOpen(true);
-      }
     };
-  
-    fetchUsers();
-  }, []);
 
-  useEffect(() => {
-    const fetchEntries = async () => {
-      if (!selectedUserId) return
+    useEffect(() => {
+        const fetchUsersAndSetInitial = async () => {
+            try {
+                const usersCollection = collection(db, "users");
+                const userSnapshot = await getDocs(usersCollection);
+                const userList = userSnapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    name: doc.data().name as string,
+                }));
+                setUsers(userList);
 
-      const entriesQuery = query(
-        collection(db, "users", selectedUserId, "fitness_entries"),
-        orderBy("timestamp", "desc"),
-      )
+                const savedUserId = localStorage.getItem("selectedUserId");
+                const savedUserName = localStorage.getItem("selectedUserName");
 
-      const entriesSnapshot = await getDocs(entriesQuery)
-      const entriesList = entriesSnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as unknown as FitnessEntry,
-      )
-
-      setEntries(entriesList)
-    }
-
-    fetchEntries()
-  }, [selectedUserId])
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (selectedUserId && situps && pushups) {
-      const newEntry: Omit<FitnessEntry, "id"> = {
-        userId: selectedUserId,
-        situps: Number.parseInt(situps),
-        pushups: Number.parseInt(pushups),
-        timestamp: date ? Timestamp.fromDate(date) : Timestamp.now(),
-      }
-
-      await addDoc(collection(db, "users", selectedUserId, "fitness_entries"), newEntry)
-
-      // Refresh entries
-      const entriesQuery = query(
-        collection(db, "users", selectedUserId, "fitness_entries"),
-        orderBy("timestamp", "desc"),
-      )
-      const entriesSnapshot = await getDocs(entriesQuery)
-      const entriesList = entriesSnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as unknown as FitnessEntry,
-      )
-      setEntries(entriesList)
-
-      setSitups("")
-      setPushups("")
-      toast({
-        duration: 2000,
-        title: "MTR added!"
-      })
-      setDate(undefined)
-    }
-  }
-
-  const chartData = useMemo(() => {
-    return entries
-      .map((entry) => ({
-        date: entry.timestamp.toDate().toLocaleDateString(),
-        situps: entry.situps,
-        pushups: entry.pushups,
-      }))
-      .reverse()
-  }, [entries])
-
-  const handleDelete = async (entryId: string) => {
-    try {
-      const entryRef = doc(db, "users", selectedUserId, "fitness_entries", entryId)
-      await deleteDoc(entryRef)
-  
-      const entriesQuery = query(
-        collection(db, "users", selectedUserId, "fitness_entries"),
-        orderBy("timestamp", "desc"),
-      )
-      const entriesSnapshot = await getDocs(entriesQuery)
-      const entriesList = entriesSnapshot.docs.map(
-        (doc) =>
-          ({
-            id: doc.id,
-            ...doc.data(),
-          }) as unknown as FitnessEntry,
-      )
-      setEntries(entriesList)
-      toast({
-        duration: 2000,
-        variant: "destructive",
-        title: "MTR deleted!"
-      })
-    } catch (error) {
-      console.error("Error deleting entry: ", error)
-      toast({
-        duration: 2000,
-        variant: "destructive",
-        title: "Error!",
-        description: `Error deleting record: ${error}`
-      })
-    }
-  }
-  const chartConfig = {
-    situps: {
-      label: "Situps",
-      color: "hsl(174, 100%, 40%)",
-    },
-    pushups: {
-      label: "Pushups",
-      color: "hsl(210, 100%, 40%)",
-    },
-  } satisfies ChartConfig
-
-  const totalsLast7Days = useMemo(() => {
-    const today = new Date();
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
-    const fourteenDaysAgo = new Date(sevenDaysAgo);
-    fourteenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  
-    const last7DaysTotals = { pushups: 0, situps: 0 };
-  
-    const prev7DaysTotals = { pushups: 0, situps: 0 };
-  
-    entries.forEach((entry) => {
-      const entryDate = entry.timestamp.toDate();
-  
-      if (entryDate >= sevenDaysAgo && entryDate <= today) {
-        last7DaysTotals.pushups += entry.pushups;
-        last7DaysTotals.situps += entry.situps;
-      } else if (entryDate >= fourteenDaysAgo && entryDate < sevenDaysAgo) {
-        prev7DaysTotals.pushups += entry.pushups;
-        prev7DaysTotals.situps += entry.situps;
-      }
-    });
-  
-    const calculatePercentageChange = (current: number, previous: number) => {
-      if (previous === 0) return current > 0 ? 100 : 0;
-      return ((current - previous) / previous) * 100;
-    };
-  
-    const pushupsPercentageChange = calculatePercentageChange(
-      last7DaysTotals.pushups,
-      prev7DaysTotals.pushups
-    );
-  
-    const situpsPercentageChange = calculatePercentageChange(
-      last7DaysTotals.situps,
-      prev7DaysTotals.situps
-    );
-  
-    return {
-      last7DaysTotals,
-      prev7DaysTotals,
-      pushupsPercentageChange,
-      situpsPercentageChange,
-    };
-  }, [entries]);
-
-  return (
-    <div className="container mx-auto p-1">
-      <div className="mt-2 flex space-x-4 justify-center">
-        <Card className="w-full max-w-xs p-2 shadow-lg rounded-xl border">
-          <CardHeader className="text-center pb-1">
-            <CardTitle className="text-base font-semibold text-gray-800">
-              Total Situps(7D)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <div className="flex flex-col items-center space-y-1">
-              <p className="text-xl font-bold text-blue-600">
-                {totalsLast7Days.last7DaysTotals.situps}
-              </p>
-              <TooltipProvider>
-                <ToolTip>
-                  <TooltipTrigger>
-                    <div className="flex items-center space-x-1 text-gray-500">
-                      {totalsLast7Days.situpsPercentageChange >= 0 ? (
-                        <TrendingUp className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 text-red-500" />
-                      )}
-                      <p
-                        className={`text-xs font-medium ${
-                          totalsLast7Days.situpsPercentageChange >= 0
-                            ? "text-green-500"
-                            : "text-red-500"
-                        }`}
-                      >
-                        {totalsLast7Days.situpsPercentageChange.toFixed(2)}%
-                      </p>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {totalsLast7Days.last7DaysTotals.situps} reps vs{" "}
-                      {totalsLast7Days.prev7DaysTotals.situps} reps
-                    </p>
-                  </TooltipContent>
-                </ToolTip>
-              </TooltipProvider>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="w-full max-w-xs p-2 shadow-lg rounded-xl border">
-          <CardHeader className="text-center pb-1">
-            <CardTitle className="text-base font-semibold text-gray-800">
-              Total Pushups(7D)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-2">
-            <div className="flex flex-col items-center space-y-1">
-              <p className="text-xl font-bold text-blue-600">
-                {totalsLast7Days.last7DaysTotals.pushups}
-              </p>
-              <TooltipProvider>
-                <ToolTip>
-                  <TooltipTrigger>
-                    <div className="flex items-center space-x-1 text-gray-500">
-                      {totalsLast7Days.pushupsPercentageChange >= 0 ? (
-                        <TrendingUp className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 text-red-500" />
-                      )}
-                      <p
-                        className={`text-xs font-medium ${
-                          totalsLast7Days.pushupsPercentageChange >= 0
-                            ? "text-green-500"
-                            : "text-red-500"
-                        }`}
-                      >
-                        {totalsLast7Days.pushupsPercentageChange.toFixed(2)}%
-                      </p>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {totalsLast7Days.last7DaysTotals.pushups} reps vs{" "}
-                      {totalsLast7Days.prev7DaysTotals.pushups} reps
-                    </p>
-                  </TooltipContent>
-                </ToolTip>
-              </TooltipProvider>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <Card className="mt-2 w-full max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle>AWG PLT1 MTR Tracker</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-            <div className="flex flex-col space-y-2">
-              <Label htmlFor="user">Name</Label>
-              <Popover open={selectComboBoxOpen} onOpenChange={setSelectComboBoxOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={selectComboBoxOpen}
-                    className=" justify-between"
-                  >
-                    {selectedUserId ? users.find((user) => user.id === selectedUserId)?.name: "Select a cadet"}
-                    <ChevronsUpDown className="opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-md p-0">
-                  <Command>
-                    <CommandInput placeholder="Search cadet..." className="h-9" />
-                    <CommandList className="max-h-[250px]">
-                      <CommandEmpty>No cadet found.</CommandEmpty>
-                      <CommandGroup>
-                        {users.map((user) => (
-                          <CommandItem
-                            key={user.id}
-                            value={user.name}
-                            onSelect={() => {
-                              setSelectedUserId(user.id);
-                              setSelectComboBoxOpen(false);
-                            }}
-                          >
-                            {user.name}
-                            <Check className={user.id === selectedUserId ? "ml-auto opacity-100" : "ml-auto opacity-0"} />
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="situps">Situps</Label>
-              <Input
-                id="situps"
-                type="number"
-                placeholder="Max number of situps (60s)"
-                value={situps}
-                onChange={(e) => setSitups(e.target.value)}
-                min="0"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="pushups">Pushups</Label>
-              <Input
-                id="pushups"
-                type="number"
-                placeholder="Max number of pushups (60s)"
-                value={pushups}
-                onChange={(e) => setPushups(e.target.value)}
-                min="0"
-                required
-              />
-            </div>
-            <p className="text-sm">Date</p>
-            <div className="space-y-2">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full mt-0 justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                    required
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <Button type="submit" className="w-full">
-              Submit
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-      {chartData.length > 0 && (
-        <Card className="mt-2 w-full max-w-4xl mx-auto">
-          <CardHeader className="p-2 sm:p-3 md:p-4">
-            <CardTitle className="text-sm sm:text-base md:text-lg font-semibold">{users.find((u) => u.id === selectedUserId)?.name}&apos;s Progress</CardTitle>
-          </CardHeader>
-          <CardContent className="p-1 sm:p-2 md:p-3">
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <ChartContainer config={chartConfig}>
-                  <LineChart
-                    accessibilityLayer
-                    data={chartData}
-                    margin={{
-                      top: 10,
-                      right: 5,
-                      bottom: 2,
-                      left: -30,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickLine={false}
-                      axisLine={false}
-                      tickMargin={6}
-                      tickFormatter={(value) => {
-                        const [day, month] = value.split('/');
-                        return `${day}/${month}`;
-                      }}
-                    />
-                    <YAxis />
-                    <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-                    <Line
-                      dataKey="situps"
-                      type="monotone"
-                      stroke="hsl(174, 100%, 40%)"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    <Line
-                      dataKey="pushups"
-                      type="monotone"
-                      stroke="hsl(210, 100%, 40%)"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                    <ChartLegend 
-                      content={<ChartLegendContent />} 
-                      wrapperStyle={{
-                        paddingBottom: '5px', 
-                        paddingTop: '0px', 
-                        fontSize: '12px',
-                      }}  
-                    />
-                  </LineChart>
-                </ChartContainer>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-
-      <div className="space-y-4">
-        <Card className="mt-2 w-full max-w-4xl mx-auto">
-          <CardContent className="p-1 sm:p-2 md:p-3">
-            {entries && entries.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="font-bold text-center">Date</TableHead>
-                    <TableHead className="font-bold">Situps</TableHead>
-                    <TableHead className="font-bold">Pushups</TableHead>
-                    <TableHead className="font-bold"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {entries.map((entry) => (
-                    <TableRow key={entry.id}>
-                      <TableCell className="p-2 text-center">{entry.timestamp.toDate().toLocaleString()}</TableCell>
-                      <TableCell className="p-2 text-center">{entry.situps}</TableCell>
-                      <TableCell className="p-2 text-center">{entry.pushups}</TableCell>
-                      <TableCell className="p-2 text-center">
-                        <Button
-                          onClick={() => {
-                            setEntryIdToDelete(entry.id); 
-                            setAlertDialogOpen(true);}}
-                          className="bg-white hover:bg-gray-50 text-red-600 hover:text-red-800"
-                          aria-label="Delete Entry"
-                        >
-                          <FaTrashAlt />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center">
-                <Badge variant="secondary">No entries found!</Badge>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      <div className="fixed bottom-4 right-4 z-50 bg-gray-50 text-black text-[8px] p-1 rounded shadow-lg cursor-pointer" onClick={() => setIsDialogOpen(true)}>
-        <span className="font-semibold">{userName}</span>
-      </div>
-      <Dialog open={isDialogOpen}>
-        <DialogContent className="w-full max-w-[95%] sm:max-w-md rounded-lg">
-          <DialogHeader>
-            <DialogTitle>Select Your Default User</DialogTitle>
-            <DialogClose onClick={() => setIsDialogOpen(false)} className="absolute top-3 right-4 z-50 text-gray-600">
-              <XIcon className="h-3 w-4" />
-            </DialogClose>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Popover open={defaultComboBoxOpen} onOpenChange={setDefaultComboBoxOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" aria-expanded={defaultComboBoxOpen} className="w-full justify-between">
-                  {selectedUserId
-                    ? users.find((user) => user.id === selectedUserId)?.name
-                    : "Select a user..."}
-                  <ChevronsUpDown className="opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-md p-0">
-                <Command>
-                  <CommandInput placeholder="Search user..." className="h-9" />
-                  <CommandList className="max-h-[250px]">
-                    <CommandEmpty>No user found.</CommandEmpty>
-                    <CommandGroup>
-                      {users.map((user) => (
-                        <CommandItem
-                          key={user.id}
-                          value={user.name}
-                          onSelect={() => {
-                            handleUserSelection(user.id)
-                            setDefaultComboBoxOpen(false)
-                          }}
-                        >
-                          {user.name}
-                          <Check className={`ml-auto ${selectedUserId === user.id ? "opacity-100" : "opacity-0"}`} />
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setIsDialogOpen(false)} disabled={!selectedUserId}>
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={alertDialogOpen}>
-        <AlertDialogContent className="w-full max-w-sm md:max-w-md rounded-lg">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your
-              entry and remove the data!
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {setEntryIdToDelete(null);setAlertDialogOpen(false)}}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-            className="bg-red-600 hover:bg-red-500"
-              onClick={() => {
-                if (entryIdToDelete) {
-                  handleDelete(entryIdToDelete)
-                  setAlertDialogOpen(false)
+                if (savedUserId && userList.some(user => user.id === savedUserId)) {
+                    setSelectedUserId(savedUserId);
+                    setUserName(savedUserName || userList.find(u => u.id === savedUserId)?.name || "User");
+                } else if (userList.length > 0) {
+                    // If no saved user, prompt selection, but only if users exist
+                     setIsUserSelectDialogOpen(true);
+                     setUserName("Select User"); // Prompt name
+                } else {
+                     setUserName("No Users"); // Handle case with no users in DB
+                     setIsLoading(false); // Not loading if no users
                 }
-              }}
-            >
-              Confirm
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  )
-}
+                // Don't set isLoading false here, wait for entries
 
+            } catch (error) {
+                 console.error("Error fetching users:", error);
+                 toast({ variant: "destructive", title: "Error fetching users" });
+                 setIsLoading(false);
+            }
+        };
+
+        fetchUsersAndSetInitial();
+    }, []); // Fetch users once on mount
+
+    // --- Entry Fetching (depends on user and type) ---
+    useEffect(() => {
+        const fetchEntries = async () => {
+            if (!selectedUserId) {
+                 setEntries([]); // Clear entries if no user selected
+                 setIsLoading(false);
+                 return;
+            }
+
+            setIsLoading(true);
+            const collectionName = selectedTrainingType === 'maxReps'
+                ? "fitness_entries"
+                : "fitness_entries_timed";
+
+            try {
+                const entriesQuery = query(
+                    collection(db, "users", selectedUserId, collectionName),
+                    orderBy("timestamp", "desc")
+                );
+
+                const entriesSnapshot = await getDocs(entriesQuery);
+                const entriesList = entriesSnapshot.docs.map((doc) => {
+                    const data = doc.data();
+                    // Add the 'type' identifier when fetching
+                    return {
+                        id: doc.id,
+                        type: selectedTrainingType, // Assign based on current selection
+                        ...data,
+                    } as FitnessEntry; // Assert as the union type
+                });
+                setEntries(entriesList);
+            } catch (error) {
+                console.error("Error fetching entries:", error);
+                toast({ variant: "destructive", title: `Error fetching ${collectionName}` });
+                setEntries([]); // Clear entries on error
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        // Fetch entries immediately if user is already selected,
+        // otherwise it will fetch when user/type changes.
+        if(selectedUserId) {
+            fetchEntries();
+        } else {
+            setIsLoading(false); // Not loading if no user selected yet
+        }
+
+    }, [selectedUserId, selectedTrainingType, toast]); // Re-fetch when user OR type changes
+
+    // --- Form Submission ---
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedUserId) {
+            toast({ variant: "destructive", title: "Please select a user first." });
+            return;
+        }
+        if (!date) {
+             toast({ variant: "destructive", title: "Please select a date." });
+            return;
+        }
+
+        const submissionTimestamp = Timestamp.fromDate(date);
+        let success = false;
+
+        try {
+             setIsLoading(true); // Indicate activity during submission
+
+             if (selectedTrainingType === 'maxReps') {
+                if (situps && pushups && !isNaN(parseInt(situps)) && !isNaN(parseInt(pushups))) {
+                    const newEntry: Omit<FitnessEntryMaxReps, "id" | "type"> = {
+                        userId: selectedUserId,
+                        situps: parseInt(situps),
+                        pushups: parseInt(pushups),
+                        timestamp: submissionTimestamp,
+                    };
+                    await addDoc(collection(db, "users", selectedUserId, "fitness_entries"), newEntry);
+                    setSitups("");
+                    setPushups("");
+                    success = true;
+                } else {
+                    toast({ variant: "destructive", title: "Invalid input for Max Reps." });
+                }
+            } else { // 'timed'
+                 const sitM = parseInt(situpMinutes);
+                 const sitS = parseInt(situpSeconds);
+                 const pushM = parseInt(pushupMinutes);
+                 const pushS = parseInt(pushupSeconds);
+
+                 // Basic Validation
+                 if (!isNaN(sitM) && !isNaN(sitS) && sitS >= 0 && sitS < 60 && sitM >= 0 &&
+                     !isNaN(pushM) && !isNaN(pushS) && pushS >= 0 && pushS < 60 && pushM >= 0)
+                 {
+                    const situpTotalSeconds = sitM * 60 + sitS;
+                    const pushupTotalSeconds = pushM * 60 + pushS;
+
+                    const newEntry: Omit<FitnessEntryTimed, "id" | "type"> = {
+                        userId: selectedUserId,
+                        situpTime: situpTotalSeconds,
+                        pushupTime: pushupTotalSeconds,
+                        timestamp: submissionTimestamp,
+                    };
+                    await addDoc(collection(db, "users", selectedUserId, "fitness_entries_timed"), newEntry);
+                    setSitupMinutes("");
+                    setSitupSeconds("");
+                    setPushupMinutes("");
+                    setPushupSeconds("");
+                    success = true;
+                 } else {
+                      toast({ variant: "destructive", title: "Invalid input for Timed Reps.", description: "Ensure minutes are >= 0 and seconds are between 0-59." });
+                 }
+            }
+
+            if (success) {
+                 // Manually add the new entry to the start of the list for immediate UI update
+                 // Note: This assumes the structure matches perfectly and might drift if fetches fail later
+                 // A full refetch is safer but slower UX. Choose based on preference.
+                // --- Start Refetch Logic ---
+                const collectionName = selectedTrainingType === 'maxReps' ? "fitness_entries" : "fitness_entries_timed";
+                const entriesQuery = query(
+                    collection(db, "users", selectedUserId, collectionName),
+                    orderBy("timestamp", "desc")
+                );
+                 const entriesSnapshot = await getDocs(entriesQuery);
+                 const entriesList = entriesSnapshot.docs.map((doc) => ({
+                    id: doc.id,
+                    type: selectedTrainingType,
+                    ...doc.data(),
+                 }) as FitnessEntry);
+                 setEntries(entriesList);
+                 // --- End Refetch Logic ---
+
+                toast({ duration: 2000, title: "Entry added!" });
+                setDate(new Date()); // Reset date picker to today
+            }
+        } catch (error) {
+             console.error("Error submitting entry:", error);
+             toast({ variant: "destructive", title: "Submission Error", description: `${error}` });
+        } finally {
+             setIsLoading(false);
+        }
+    };
+
+    // --- Deletion ---
+    const handleDelete = async (entryId: string) => {
+        if (!selectedUserId || !entryId) return;
+
+        // Determine collection based on the *currently selected type*
+        // This assumes the table only shows entries of the selected type
+        const collectionName = selectedTrainingType === 'maxReps'
+            ? "fitness_entries"
+            : "fitness_entries_timed";
+
+        try {
+            setIsLoading(true);
+            const entryRef = doc(db, "users", selectedUserId, collectionName, entryId);
+            await deleteDoc(entryRef);
+
+            // Remove locally for instant feedback
+            setEntries(prevEntries => prevEntries.filter(entry => entry.id !== entryId));
+
+            toast({ duration: 2000, variant: "destructive", title: "Entry deleted!" });
+        } catch (error) {
+            console.error("Error deleting entry: ", error);
+            toast({ duration: 2000, variant: "destructive", title: "Error!", description: `Error deleting record: ${error}` });
+             // Refetch on error to ensure consistency
+            const entriesQuery = query(collection(db, "users", selectedUserId, collectionName), orderBy("timestamp", "desc"));
+            const entriesSnapshot = await getDocs(entriesQuery);
+            const entriesList = entriesSnapshot.docs.map((doc) => ({ id: doc.id, type: selectedTrainingType, ...doc.data() }) as FitnessEntry);
+            setEntries(entriesList);
+        } finally {
+            setIsLoading(false);
+            setEntryIdToDelete(null); // Clear the ID after attempt
+            setAlertDialogOpen(false); // Close dialog
+        }
+    };
+
+    // --- Chart Data and Config ---
+    const chartConfigMaxReps = {
+        situps: { label: "Situps (Count)", color: "hsl(174, 100%, 40%)" },
+        pushups: { label: "Pushups (Count)", color: "hsl(210, 100%, 40%)" },
+    } satisfies ChartConfig;
+
+    const chartConfigTimed = {
+        situpTime: { label: "Situp Time (s)", color: "hsl(34, 100%, 50%)" }, // Different colors maybe
+        pushupTime: { label: "Pushup Time (s)", color: "hsl(270, 100%, 60%)" },
+    } satisfies ChartConfig;
+
+    const currentChartConfig = selectedTrainingType === 'maxReps' ? chartConfigMaxReps : chartConfigTimed;
+
+    const chartData = useMemo(() => {
+        const formatted = entries
+            .map((entry) => {
+                if (entry.type === 'maxReps') {
+                    return {
+                        date: entry.timestamp.toDate().toLocaleDateString(),
+                        situps: entry.situps,
+                        pushups: entry.pushups,
+                    };
+                } else if (entry.type === 'timed') {
+                    return {
+                        date: entry.timestamp.toDate().toLocaleDateString(),
+                        situpTime: entry.situpTime, // Use time in seconds for chart
+                        pushupTime: entry.pushupTime,
+                    };
+                }
+                return null; // Should not happen if type is set correctly
+            })
+            .filter(item => item !== null); // Remove any nulls
+
+         // Reverse *after* mapping to ensure correct chronological order for charts
+        return formatted.reverse();
+    }, [entries]); // Depends only on entries
+
+    // --- 7 Day Totals (Only for Max Reps) ---
+    const totalsLast7Days = useMemo(() => {
+        if (selectedTrainingType !== 'maxReps') {
+             return null; // Don't calculate for timed mode
+        }
+
+        const today = new Date();
+        today.setHours(23, 59, 59, 999); // End of today
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0); // Start of 7 days ago
+        const fourteenDaysAgo = new Date(sevenDaysAgo);
+        fourteenDaysAgo.setDate(sevenDaysAgo.getDate() - 7); // Start of 14 days ago
+
+        const last7DaysTotals = { pushups: 0, situps: 0 };
+        const prev7DaysTotals = { pushups: 0, situps: 0 };
+
+        // Filter entries to only include MaxReps type for calculation
+        (entries as FitnessEntryMaxReps[]).filter(e => e.type === 'maxReps').forEach((entry) => {
+            const entryDate = entry.timestamp.toDate();
+
+            if (entryDate >= sevenDaysAgo && entryDate <= today) {
+                last7DaysTotals.pushups += entry.pushups;
+                last7DaysTotals.situps += entry.situps;
+            } else if (entryDate >= fourteenDaysAgo && entryDate < sevenDaysAgo) {
+                prev7DaysTotals.pushups += entry.pushups;
+                prev7DaysTotals.situps += entry.situps;
+            }
+        });
+
+        const calculatePercentageChange = (current: number, previous: number) => {
+            if (previous === 0) return current > 0 ? Infinity : 0; // Handle division by zero (Infinity indicates increase from zero)
+            return ((current - previous) / previous) * 100;
+        };
+
+        const pushupsPercentageChange = calculatePercentageChange(last7DaysTotals.pushups, prev7DaysTotals.pushups);
+        const situpsPercentageChange = calculatePercentageChange(last7DaysTotals.situps, prev7DaysTotals.situps);
+
+        const formatPercentage = (change: number) => {
+             if (change === Infinity) return "+∞%";
+             return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
+        }
+
+        return {
+            last7DaysTotals,
+            prev7DaysTotals,
+            pushupsPercentageChange,
+            situpsPercentageChange,
+            formattedPushupsChange: formatPercentage(pushupsPercentageChange),
+            formattedSitupsChange: formatPercentage(situpsPercentageChange)
+        };
+    }, [entries, selectedTrainingType]); // Depends on entries and type
+
+    const truncateName = (name: string | undefined, maxLength: number) => {
+      if (!name) return "";
+      if (name.length > maxLength) {
+        return name.substring(0, maxLength) + "...";
+      }
+      return name;
+    };
+    
+    const displayedName = selectedUserId
+    ? truncateName(users.find((user) => user.id === selectedUserId)?.name, 25) 
+    : "Select Cadet...";
+    // --- Render ---
+    return (
+        <div className="container mx-auto p-1 pb-16"> {/* Add padding bottom */}
+
+            {/* --- 7-Day Summary Cards (Conditional) --- */}
+            {selectedTrainingType === 'maxReps' && totalsLast7Days && (
+                <div className="mt-2 mb-4 flex flex-wrap justify-center gap-2 sm:gap-4">
+                     {/* Situps Card */}
+                    <Card className="w-full max-w-[180px] p-2 shadow-lg rounded-xl border">
+                         <CardHeader className="text-center pb-1 pt-1">
+                            <CardTitle className="text-sm font-semibold text-gray-800">
+                                Situps (7D)
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-1">
+                             <div className="flex flex-col items-center space-y-1">
+                                <p className="text-lg font-bold text-blue-600">
+                                    {totalsLast7Days.last7DaysTotals.situps}
+                                </p>
+                                <TooltipProvider delayDuration={100}>
+                                    <ToolTip>
+                                         <TooltipTrigger>
+                                             <div className="flex items-center space-x-1 text-gray-500">
+                                                 {totalsLast7Days.situpsPercentageChange >= 0 ? (
+                                                     <TrendingUp className="h-4 w-4 text-green-500" />
+                                                 ) : (
+                                                     <TrendingDown className="h-4 w-4 text-red-500" />
+                                                 )}
+                                                 <p className={`text-xs font-medium ${totalsLast7Days.situpsPercentageChange >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                                     {totalsLast7Days.formattedSitupsChange}
+                                                 </p>
+                                             </div>
+                                         </TooltipTrigger>
+                                         <TooltipContent>
+                                             <p className="text-xs">
+                                                vs {totalsLast7Days.prev7DaysTotals.situps} reps (prev 7 days)
+                                             </p>
+                                         </TooltipContent>
+                                     </ToolTip>
+                                 </TooltipProvider>
+                             </div>
+                         </CardContent>
+                     </Card>
+                     {/* Pushups Card */}
+                     <Card className="w-full max-w-[180px] p-2 shadow-lg rounded-xl border">
+                          <CardHeader className="text-center pb-1 pt-1">
+                            <CardTitle className="text-sm font-semibold text-gray-800">
+                                Pushups (7D)
+                            </CardTitle>
+                        </CardHeader>
+                         <CardContent className="p-1">
+                              <div className="flex flex-col items-center space-y-1">
+                                <p className="text-lg font-bold text-blue-600">
+                                    {totalsLast7Days.last7DaysTotals.pushups}
+                                </p>
+                                <TooltipProvider delayDuration={100}>
+                                    <ToolTip>
+                                         <TooltipTrigger>
+                                            {/* ... Trend icon and percentage ... */}
+                                              <div className="flex items-center space-x-1 text-gray-500">
+                                                 {totalsLast7Days.pushupsPercentageChange >= 0 ? (
+                                                     <TrendingUp className="h-4 w-4 text-green-500" />
+                                                 ) : (
+                                                     <TrendingDown className="h-4 w-4 text-red-500" />
+                                                 )}
+                                                 <p className={`text-xs font-medium ${totalsLast7Days.pushupsPercentageChange >= 0 ? "text-green-600" : "text-red-600"}`}>
+                                                     {totalsLast7Days.formattedPushupsChange}
+                                                 </p>
+                                             </div>
+                                         </TooltipTrigger>
+                                         <TooltipContent>
+                                             <p className="text-xs">
+                                                 vs {totalsLast7Days.prev7DaysTotals.pushups} reps (prev 7 days)
+                                             </p>
+                                         </TooltipContent>
+                                     </ToolTip>
+                                 </TooltipProvider>
+                              </div>
+                          </CardContent>
+                      </Card>
+                </div>
+            )}
+
+            {/* --- Input Card with Tabs --- */}
+            <Card className="mt-2 w-full max-w-4xl mx-auto">
+                <CardHeader>
+                    {/* User Selector */}
+                     <div className="flex items-center justify-between mb-2">
+                         <CardTitle>Log MTR Training Entry</CardTitle>
+                         <Popover open={selectComboBoxOpen} onOpenChange={setSelectComboBoxOpen}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={selectComboBoxOpen}
+                                    className="w-[300px] justify-between text-sm"
+                                    disabled={isLoading && users.length === 0} // Disable if loading users
+                                >
+                                    {displayedName}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                             <PopoverContent className="w-[200px] p-0">
+                                 <Command>
+                                    <CommandInput placeholder="Search cadet..." className="h-9" />
+                                     <CommandList className="max-h-[250px]">
+                                         <CommandEmpty>No cadet found.</CommandEmpty>
+                                         <CommandGroup>
+                                             {users.map((user) => (
+                                                 <CommandItem
+                                                     key={user.id}
+                                                     value={user.name}
+                                                     onSelect={() => {
+                                                         handleUserSelection(user.id);
+                                                         setSelectComboBoxOpen(false);
+                                                     }}
+                                                 >
+                                                     {user.name}
+                                                     <Check className={cn("ml-auto h-4 w-4", user.id === selectedUserId ? "opacity-100" : "opacity-0")} />
+                                                 </CommandItem>
+                                             ))}
+                                         </CommandGroup>
+                                     </CommandList>
+                                 </Command>
+                             </PopoverContent>
+                         </Popover>
+                     </div>
+                     {/* End User Selector */}
+                </CardHeader>
+                <CardContent>
+                    <Tabs value={selectedTrainingType} onValueChange={(value: string) => setSelectedTrainingType(value as TrainingType)}>
+                        <TabsList className="grid w-full grid-cols-2 mb-4">
+                            <TabsTrigger value="maxReps">Max Reps (60s)</TabsTrigger>
+                            <TabsTrigger value="timed">Time for 60 Reps</TabsTrigger>
+                        </TabsList>
+
+                        {/* --- FORM --- */}
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                             {/* Inputs change based on Tab */}
+                             <TabsContent value="maxReps" className="space-y-4 m-0">
+                                 <div className="space-y-1">
+                                     <Label htmlFor="situps-max">Situps</Label>
+                                     <Input id="situps-max" type="number" placeholder="Max situps in 60s" value={situps} onChange={(e) => setSitups(e.target.value)} min="0" required={selectedTrainingType === 'maxReps'} />
+                                 </div>
+                                 <div className="space-y-1">
+                                     <Label htmlFor="pushups-max">Pushups</Label>
+                                     <Input id="pushups-max" type="number" placeholder="Max pushups in 60s" value={pushups} onChange={(e) => setPushups(e.target.value)} min="0" required={selectedTrainingType === 'maxReps'} />
+                                 </div>
+                             </TabsContent>
+
+                             <TabsContent value="timed" className="space-y-4 m-0">
+                                 {/* Situp Time Input */}
+                                 <div className="space-y-1">
+                                      <Label htmlFor="situp-minutes">Situp Time (for 60 reps)</Label>
+                                      <div className="flex items-center space-x-2">
+                                        <Input id="situp-minutes" type="number" placeholder="MM" value={situpMinutes} onChange={(e) => setSitupMinutes(e.target.value)} min="0" className="w-16" required={selectedTrainingType === 'timed'} />
+                                        <span className="font-bold">:</span>
+                                        <Input id="situp-seconds" type="number" placeholder="SS" value={situpSeconds} onChange={(e) => setSitupSeconds(e.target.value)} min="0" max="59" className="w-16" required={selectedTrainingType === 'timed'} />
+                                      </div>
+                                 </div>
+                                 {/* Pushup Time Input */}
+                                  <div className="space-y-1">
+                                      <Label htmlFor="pushup-minutes">Pushup Time (for 60 reps)</Label>
+                                      <div className="flex items-center space-x-2">
+                                        <Input id="pushup-minutes" type="number" placeholder="MM" value={pushupMinutes} onChange={(e) => setPushupMinutes(e.target.value)} min="0" className="w-16" required={selectedTrainingType === 'timed'} />
+                                        <span className="font-bold">:</span>
+                                        <Input id="pushup-seconds" type="number" placeholder="SS" value={pushupSeconds} onChange={(e) => setPushupSeconds(e.target.value)} min="0" max="59" className="w-16" required={selectedTrainingType === 'timed'} />
+                                      </div>
+                                 </div>
+                             </TabsContent>
+
+                             {/* Date Picker (Common to both) */}
+                              <div className="space-y-1">
+                                 <Label htmlFor="date-picker-button">Date</Label>
+                                 <Popover>
+                                     <PopoverTrigger asChild id="date-picker-button">
+                                         <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}>
+                                             <CalendarIcon className="mr-2 h-4 w-4" />
+                                             {date ? format(date, "PPP") : <span>Pick a date</span>}
+                                         </Button>
+                                     </PopoverTrigger>
+                                     <PopoverContent className="w-auto p-0">
+                                         <Calendar mode="single" selected={date} onSelect={(d) => setDate(d || new Date())} initialFocus required />
+                                     </PopoverContent>
+                                 </Popover>
+                             </div>
+
+                            {/* Submit Button (Common) */}
+                            <Button type="submit" className="w-full" disabled={isLoading || !selectedUserId}>
+                                {isLoading ? "Submitting..." : "Submit Entry"}
+                            </Button>
+                        </form>
+                        {/* --- END FORM --- */}
+                    </Tabs>
+                </CardContent>
+            </Card>
+
+            {/* --- Chart (Conditional Data Keys) --- */}
+             {chartData.length > 0 && (
+                <Card className="mt-4 w-full max-w-4xl mx-auto">
+                    <CardHeader className="p-2 sm:p-3 md:p-4">
+                         <CardTitle className="text-sm sm:text-base md:text-lg font-semibold">
+                             {users.find((u) => u.id === selectedUserId)?.name}&apos;s Progress
+                             ({selectedTrainingType === 'maxReps' ? 'Max Reps' : 'Time/60 Reps'})
+                         </CardTitle>
+                     </CardHeader>
+                     <CardContent className="p-1 sm:p-2 md:p-3">
+                        <div className="h-[300px] w-full">
+                             <ResponsiveContainer width="100%" height="100%">
+                                 <ChartContainer config={currentChartConfig}>
+                                    {/* Key props change */}
+                                     <LineChart accessibilityLayer data={chartData} margin={{ top: 10, right: 10, bottom: 2, left: -20 }}>
+                                         <CartesianGrid strokeDasharray="3 3" />
+                                         <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} fontSize={10} interval="preserveStartEnd" tickFormatter={(value) => value.substring(0, 5)} /* Simplified date format */ />
+                                         <YAxis fontSize={10} tickMargin={5} label={{ value: selectedTrainingType === 'timed' ? 'Time (seconds)' : 'Reps', angle: -90, position: 'insideLeft', offset: -5, style:{fontSize:'10px'}}}/>
+                                         <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+
+                                        {selectedTrainingType === 'maxReps' ? (
+                                            <>
+                                                <Line
+                                                    dataKey="situps"
+                                                    type="monotone"
+                                                    stroke={chartConfigMaxReps.situps.color}
+                                                    strokeWidth={2}
+                                                    dot={false}
+                                                />
+                                                <Line
+                                                    dataKey="pushups"
+                                                    type="monotone"
+                                                    stroke={chartConfigMaxReps.pushups.color}
+                                                    strokeWidth={2}
+                                                    dot={false}
+                                                />
+                                            </>
+                                        ) : ( // selectedTrainingType === 'timed'
+                                            <>
+                                                <Line
+                                                    dataKey="situpTime"
+                                                    type="monotone"
+                                                    stroke={chartConfigTimed.situpTime.color}
+                                                    strokeWidth={2}
+                                                    dot={false}
+                                                />
+                                                <Line
+                                                    dataKey="pushupTime"
+                                                    type="monotone"
+                                                    stroke={chartConfigTimed.pushupTime.color}
+                                                    strokeWidth={2}
+                                                    dot={false}
+                                                />
+                                            </>
+                                        )}
+
+                                         <ChartLegend content={<ChartLegendContent />} wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }} />
+                                     </LineChart>
+                                 </ChartContainer>
+                             </ResponsiveContainer>
+                         </div>
+                     </CardContent>
+                </Card>
+             )}
+
+            {/* --- History Table (Conditional Columns) --- */}
+            <Card className="mt-4 w-full max-w-4xl mx-auto">
+                 <CardHeader className="p-2 sm:p-3 md:p-4">
+                     <CardTitle className="text-base font-semibold">Entry History ({selectedTrainingType === 'maxReps' ? 'Max Reps' : 'Time/60 Reps'})</CardTitle>
+                 </CardHeader>
+                <CardContent className="p-1 sm:p-2 md:p-3">
+                    {isLoading && entries.length === 0 ? (
+                        <div className="text-center py-4">Loading entries...</div>
+                    ) : !isLoading && entries.length === 0 ? (
+                        <div className="text-center py-4">
+                            <Badge variant="secondary">No entries found for this mode!</Badge>
+                        </div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="p-2 text-xs sm:text-sm text-center">Date</TableHead>
+                                    {/* Conditional Headers */}
+                                    {selectedTrainingType === 'maxReps' ? (
+                                        <>
+                                            <TableHead className="p-2 text-xs sm:text-sm text-center">Situps</TableHead>
+                                            <TableHead className="p-2 text-xs sm:text-sm text-center">Pushups</TableHead>
+                                        </>
+                                    ) : (
+                                         <>
+                                            <TableHead className="p-2 text-xs sm:text-sm text-center">Situp Time</TableHead>
+                                            <TableHead className="p-2 text-xs sm:text-sm text-center">Pushup Time</TableHead>
+                                        </>
+                                    )}
+                                    <TableHead className="p-2 w-[50px]"></TableHead> {/* Delete Button column */}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {entries.map((entry) => (
+                                    <TableRow key={entry.id}>
+                                        <TableCell className="p-1 sm:p-2 text-xs text-center">{format(entry.timestamp.toDate(), "dd/MM/yy hh:mm a")}</TableCell>
+                                        {/* Conditional Cells */}
+                                        {entry.type === 'maxReps' ? (
+                                            <>
+                                                <TableCell className="p-1 sm:p-2 text-xs text-center">{entry.situps}</TableCell>
+                                                <TableCell className="p-1 sm:p-2 text-xs text-center">{entry.pushups}</TableCell>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <TableCell className="p-1 sm:p-2 text-xs text-center">{formatSecondsToMMSS(entry.situpTime)}</TableCell>
+                                                <TableCell className="p-1 sm:p-2 text-xs text-center">{formatSecondsToMMSS(entry.pushupTime)}</TableCell>
+                                            </>
+                                        )}
+                                        <TableCell className="p-1 sm:p-2 text-center">
+                                            <Button
+                                                variant="ghost" size="sm" // More subtle delete button
+                                                onClick={() => { setEntryIdToDelete(entry.id); setAlertDialogOpen(true); }}
+                                                className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 h-auto"
+                                                aria-label="Delete Entry"
+                                            >
+                                                <FaTrashAlt className="h-3 w-3"/>
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
+
+            {/* --- Fixed User Indicator / Changer --- */}
+            {selectedUserId && (
+                 <div
+                    className="fixed bottom-4 right-4 z-50 bg-background border rounded-md shadow-lg cursor-pointer px-3 py-1 flex items-center space-x-2"
+                    onClick={() => setIsUserSelectDialogOpen(true)} // Re-open the main dialog
+                    title="Change User"
+                 >
+                     <span className="text-xs font-medium text-foreground">{userName}</span>
+                     <ChevronsUpDown className="h-3 w-3 text-muted-foreground" />
+                 </div>
+            )}
+
+            {/* --- Default User Selection Dialog --- */}
+             <Dialog open={isUserSelectDialogOpen} onOpenChange={setIsUserSelectDialogOpen}>
+                 <DialogContent className="w-full max-w-[95%] sm:max-w-md rounded-lg">
+                     <DialogHeader>
+                        <DialogTitle>Select Your User</DialogTitle>
+                         {/* Optional Close Button */}
+                         <DialogClose asChild>
+                           <Button variant="ghost" size="sm" className="absolute top-3 right-3 px-1 py-1 h-auto text-muted-foreground hover:bg-muted" onClick={() => setIsUserSelectDialogOpen(false)} disabled={!selectedUserId}><XIcon className="h-4 w-4" /></Button>
+                        </DialogClose>
+                     </DialogHeader>
+                     <div className="py-4"> {/* Add padding */}
+                        <Popover open={defaultComboBoxOpen} onOpenChange={setDefaultComboBoxOpen}>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" role="combobox" aria-expanded={defaultComboBoxOpen} className="w-full justify-between">
+                                    {selectedUserId ? users.find((user) => user.id === selectedUserId)?.name : "Select a user..."}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                 <Command>
+                                    <CommandInput placeholder="Search user..." className="h-9" />
+                                     <CommandList className="max-h-[250px]">
+                                         <CommandEmpty>No user found.</CommandEmpty>
+                                         <CommandGroup>
+                                             {users.map((user) => (
+                                                 <CommandItem
+                                                     key={user.id}
+                                                     value={user.name}
+                                                     onSelect={() => {
+                                                         handleUserSelection(user.id);
+                                                         setDefaultComboBoxOpen(false);
+                                                         // Don't close the main dialog here, let the footer button do it
+                                                     }}
+                                                 >
+                                                     {user.name}
+                                                     <Check className={cn("ml-auto h-4 w-4", selectedUserId === user.id ? "opacity-100" : "opacity-0")} />
+                                                 </CommandItem>
+                                             ))}
+                                         </CommandGroup>
+                                     </CommandList>
+                                 </Command>
+                             </PopoverContent>
+                        </Popover>
+                     </div>
+                     <DialogFooter>
+                         <Button onClick={() => setIsUserSelectDialogOpen(false)} disabled={!selectedUserId}>
+                            Confirm User
+                         </Button>
+                     </DialogFooter>
+                 </DialogContent>
+             </Dialog>
+
+            {/* --- Delete Confirmation Dialog --- */}
+             <AlertDialog open={alertDialogOpen} onOpenChange={setAlertDialogOpen}>
+                 <AlertDialogContent>
+                     <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                             This action cannot be undone. This will permanently delete the selected entry.
+                         </AlertDialogDescription>
+                    </AlertDialogHeader>
+                     <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setEntryIdToDelete(null)}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                             className="bg-red-600 hover:bg-red-400/90"
+                             onClick={() => { if (entryIdToDelete) { handleDelete(entryIdToDelete); } }}
+                         >
+                            Delete
+                         </AlertDialogAction>
+                     </AlertDialogFooter>
+                 </AlertDialogContent>
+             </AlertDialog>
+        </div>
+    );
+}
