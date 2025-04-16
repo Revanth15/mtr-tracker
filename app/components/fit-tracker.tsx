@@ -445,7 +445,7 @@ export default function FitTracker() {
     };
     
     const displayedName = selectedUserId
-    ? truncateName(users.find((user) => user.id === selectedUserId)?.name, 25) 
+    ? truncateName(users.find((user) => user.id === selectedUserId)?.name, 100) 
     : "Select Cadet...";
     // --- Render ---
     return (
@@ -536,13 +536,14 @@ export default function FitTracker() {
                     {/* User Selector */}
                      <div className="flex items-center justify-between mb-2">
                          <CardTitle>Log MTR Training Entry</CardTitle>
-                         <Popover open={selectComboBoxOpen} onOpenChange={setSelectComboBoxOpen}>
+                     </div>
+                     <Popover open={selectComboBoxOpen} onOpenChange={setSelectComboBoxOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant="outline"
                                     role="combobox"
                                     aria-expanded={selectComboBoxOpen}
-                                    className="w-[300px] justify-between text-sm"
+                                    className="w-full justify-between text-sm"
                                     disabled={isLoading && users.length === 0} // Disable if loading users
                                 >
                                     {displayedName}
@@ -573,7 +574,6 @@ export default function FitTracker() {
                                  </Command>
                              </PopoverContent>
                          </Popover>
-                     </div>
                      {/* End User Selector */}
                 </CardHeader>
                 <CardContent>
