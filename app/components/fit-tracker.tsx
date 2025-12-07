@@ -45,7 +45,7 @@ import {
 // Import Tabs components
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
+import { toast, useToast } from "@/hooks/use-toast";
 import { collection, query, getDocs, addDoc, orderBy, Timestamp, deleteDoc, doc } from "firebase/firestore";
 
 // --- Interfaces ---
@@ -88,6 +88,93 @@ const formatSecondsToMMSS = (totalSeconds: number): string => {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
+const populateUsersIfEmpty = async () => {
+    const usersCollection = collection(db, "users01");
+    const snapshot = await getDocs(usersCollection);
+  
+    // If there are already users, do nothing
+    if (!snapshot.empty) {
+      console.log("Users already exist in database. Skipping auto-populate.");
+      return;
+    }
+  
+    console.log("No users found. Populating database with cadet list...");
+  
+    const cadetNames = [
+      "1101 MUHAMMAD NUR SYAFIQ BIN SUWANDI",
+      "1102 MOHAMED SHAFIQ BIN MOHAMED ZAINI",
+      "1103 HENG JIAN AN",
+      "1104 RISHVIN NAIR VINOTH KUMAR",
+      "1105 LIM JIA PANG",
+      "1106 MUHAMMAD RIDHALFI BIN MUHAMMAD RIDUAN",
+      "1107 LOU JIA YING",
+      "1109 THINESKUMAR KRISHNAN",
+      "1110 AQIL ZUFAYRI BIN A RAMLI",
+      "1111 THEY SHUN HI",
+      "1112 NAING MIN HTET",
+      "1113 MUHAMMAD FATREES BIN MOHAMED SAMSOR",
+      "1114 ELIJAH ETHAN DAVID",
+      "1202 MUHAMMAD HAZIQ BIN MASWAN",
+      "1203 NGE YAO YONG",
+      "1204 SOLIHIN SHAH BIN ISA",
+      "1205 CALEB EDE",
+      "1207 MUHAMMAD HAZIQ BIN RAHIZAM",
+      "1208 QIU ZHIXIAN",
+      "1209 SRIRAM BALASUBRAMIANAN",
+      "1210 MOHAMED ANSAR MOHAMED ANWER ALI",
+      "1211 NABEEL NERGIZ",
+      "1212 YAP YONG QUAN",
+      "1213 CHIA XIN RONG",
+      "1214 ERIK LAU SHAO FENG",
+      "1302 THIRUNISHVAREN S/O THIRUMENI SIVANANTHAM",
+      "1304 AFI FAKRULLAH BIN MOHAMMAD",
+      "1305 MUHAMMAD RANIEL BIN SAIFUL AHMAD",
+      "1307 MUHAMMAD RYHAN BIN MASUNI",
+      "1309 MUHAMMAD SYAKIR NURHAZIQ BIN NURMAN",
+      "1310 JORDAN GOO YAO WEN",
+      "1312 LIU DONGYANG",
+      "1313 MOHAMAD RUZAINI RAYYAN BIN MOHAMAD RIDUWAN",
+      "1314 NG CHEN FONG",
+      "1401 DANIEL TEO AN YI",
+      "1402 SYED MOHAMED FADIL BIN SYED NASIR",
+      "1403 MOHD NUR HAKEEM BIN MOHAMED HISHAMADI",
+      "1404 NG XIN ZHI BECKHAM",
+      "1405 MUHAMMAD AFIQ BIN ABDULLAH",
+      "1406 ETHAN STEPHEN",
+      "1407 MUHAMMAD RAFIQUE DANIEL BIN ABDULLAH",
+      "1408 OOI WOEI YOU",
+      "1409 SAI KARTHIK KRISHNAMOORTHY",
+      "1410 MUHAMMAD ASTYAR BIN MUHAMMAD RAZI",
+      "1411 HARRISON LOW XUEJUN",
+      "1412 YAP HAN YANG",
+      "1413 MOHAMED DALVI KALIMULA MOHAMED HIBATULLAH",
+      "1414 NGERN JING YI , COEN"
+    ];
+  
+    const batchPromises = cadetNames.map(name => 
+      addDoc(usersCollection, { 
+        name: name.trim(),
+        createdAt: Timestamp.now()
+      })
+    );
+  
+    try {
+      await Promise.all(batchPromises);
+      toast({ 
+        title: "Success", 
+        description: `${cadetNames.length} cadets added to database!` 
+      });
+      console.log("All cadets successfully added!");
+    } catch (error) {
+      console.error("Error adding cadets:", error);
+      toast({ 
+        variant: "destructive", 
+        title: "Failed to populate users", 
+        description: "Check console for details." 
+      });
+    }
+  };
+
 
 export default function FitTracker() {
     const [users, setUsers] = useState<User[]>([]);
@@ -121,6 +208,10 @@ export default function FitTracker() {
 
     const { toast } = useToast();
 
+    useEffect(() => {
+        populateUsersIfEmpty();
+    }, []);
+
     // --- User Handling ---
     const handleUserSelection = (userId: string) => {
         const selectedUser = users.find(u => u.id === userId);
@@ -135,7 +226,7 @@ export default function FitTracker() {
     useEffect(() => {
         const fetchUsersAndSetInitial = async () => {
             try {
-                const usersCollection = collection(db, "users");
+                const usersCollection = collection(db, "users01");
                 const userSnapshot = await getDocs(usersCollection);
                 const userList = userSnapshot.docs.map((doc) => ({
                     id: doc.id,
@@ -185,7 +276,7 @@ export default function FitTracker() {
 
             try {
                 const entriesQuery = query(
-                    collection(db, "users", selectedUserId, collectionName),
+                    collection(db, "users01", selectedUserId, collectionName),
                     orderBy("timestamp", "desc")
                 );
 
@@ -245,7 +336,7 @@ export default function FitTracker() {
                         pushups: parseInt(pushups),
                         timestamp: submissionTimestamp,
                     };
-                    await addDoc(collection(db, "users", selectedUserId, "fitness_entries"), newEntry);
+                    await addDoc(collection(db, "users01", selectedUserId, "fitness_entries"), newEntry);
                     setSitups("");
                     setPushups("");
                     success = true;
@@ -271,7 +362,7 @@ export default function FitTracker() {
                         pushupTime: pushupTotalSeconds,
                         timestamp: submissionTimestamp,
                     };
-                    await addDoc(collection(db, "users", selectedUserId, "fitness_entries_timed"), newEntry);
+                    await addDoc(collection(db, "users01", selectedUserId, "fitness_entries_timed"), newEntry);
                     setSitupMinutes("");
                     setSitupSeconds("");
                     setPushupMinutes("");
@@ -289,7 +380,7 @@ export default function FitTracker() {
                 // --- Start Refetch Logic ---
                 const collectionName = selectedTrainingType === 'maxReps' ? "fitness_entries" : "fitness_entries_timed";
                 const entriesQuery = query(
-                    collection(db, "users", selectedUserId, collectionName),
+                    collection(db, "users01", selectedUserId, collectionName),
                     orderBy("timestamp", "desc")
                 );
                  const entriesSnapshot = await getDocs(entriesQuery);
@@ -324,7 +415,7 @@ export default function FitTracker() {
 
         try {
             setIsLoading(true);
-            const entryRef = doc(db, "users", selectedUserId, collectionName, entryId);
+            const entryRef = doc(db, "users01", selectedUserId, collectionName, entryId);
             await deleteDoc(entryRef);
 
             // Remove locally for instant feedback
@@ -335,7 +426,7 @@ export default function FitTracker() {
             console.error("Error deleting entry: ", error);
             toast({ duration: 2000, variant: "destructive", title: "Error!", description: `Error deleting record: ${error}` });
              // Refetch on error to ensure consistency
-            const entriesQuery = query(collection(db, "users", selectedUserId, collectionName), orderBy("timestamp", "desc"));
+            const entriesQuery = query(collection(db, "users01", selectedUserId, collectionName), orderBy("timestamp", "desc"));
             const entriesSnapshot = await getDocs(entriesQuery);
             const entriesList = entriesSnapshot.docs.map((doc) => ({ id: doc.id, type: selectedTrainingType, ...doc.data() }) as FitnessEntry);
             setEntries(entriesList);

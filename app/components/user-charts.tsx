@@ -181,7 +181,7 @@ export default function UserCharts() {
         const fetchUsers = async () => {
             // ... (keep existing user fetching logic)
              try {
-                const usersCollection = collection(db, "users");
+                const usersCollection = collection(db, "users01");
                 const userSnapshot = await getDocs(usersCollection);
                 const userList = userSnapshot.docs.map((doc) => ({
                     id: doc.id,
@@ -210,7 +210,7 @@ export default function UserCharts() {
             try {
                 const entriesPromises = users.map(async (user) => {
                     const entriesQuery = query(
-                        collection(db, "users", user.id, "fitness_entries"),
+                        collection(db, "users01", user.id, "fitness_entries"),
                         where("timestamp", ">=", Timestamp.fromDate(startDate)),
                         orderBy("timestamp", "asc")
                     );
