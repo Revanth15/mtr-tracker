@@ -88,92 +88,92 @@ const formatSecondsToMMSS = (totalSeconds: number): string => {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
-const populateUsersIfEmpty = async () => {
-    const usersCollection = collection(db, "users01");
-    const snapshot = await getDocs(usersCollection);
+// const populateUsersIfEmpty = async () => {
+//     const usersCollection = collection(db, "users01");
+//     const snapshot = await getDocs(usersCollection);
   
-    // If there are already users, do nothing
-    if (!snapshot.empty) {
-      console.log("Users already exist in database. Skipping auto-populate.");
-      return;
-    }
+//     // If there are already users, do nothing
+//     if (!snapshot.empty) {
+//       console.log("Users already exist in database. Skipping auto-populate.");
+//       return;
+//     }
   
-    console.log("No users found. Populating database with cadet list...");
+//     console.log("No users found. Populating database with cadet list...");
   
-    const cadetNames = [
-      "1101 MUHAMMAD NUR SYAFIQ BIN SUWANDI",
-      "1102 MOHAMED SHAFIQ BIN MOHAMED ZAINI",
-      "1103 HENG JIAN AN",
-      "1104 RISHVIN NAIR VINOTH KUMAR",
-      "1105 LIM JIA PANG",
-      "1106 MUHAMMAD RIDHALFI BIN MUHAMMAD RIDUAN",
-      "1107 LOU JIA YING",
-      "1109 THINESKUMAR KRISHNAN",
-      "1110 AQIL ZUFAYRI BIN A RAMLI",
-      "1111 THEY SHUN HI",
-      "1112 NAING MIN HTET",
-      "1113 MUHAMMAD FATREES BIN MOHAMED SAMSOR",
-      "1114 ELIJAH ETHAN DAVID",
-      "1202 MUHAMMAD HAZIQ BIN MASWAN",
-      "1203 NGE YAO YONG",
-      "1204 SOLIHIN SHAH BIN ISA",
-      "1205 CALEB EDE",
-      "1207 MUHAMMAD HAZIQ BIN RAHIZAM",
-      "1208 QIU ZHIXIAN",
-      "1209 SRIRAM BALASUBRAMIANAN",
-      "1210 MOHAMED ANSAR MOHAMED ANWER ALI",
-      "1211 NABEEL NERGIZ",
-      "1212 YAP YONG QUAN",
-      "1213 CHIA XIN RONG",
-      "1214 ERIK LAU SHAO FENG",
-      "1302 THIRUNISHVAREN S/O THIRUMENI SIVANANTHAM",
-      "1304 AFI FAKRULLAH BIN MOHAMMAD",
-      "1305 MUHAMMAD RANIEL BIN SAIFUL AHMAD",
-      "1307 MUHAMMAD RYHAN BIN MASUNI",
-      "1309 MUHAMMAD SYAKIR NURHAZIQ BIN NURMAN",
-      "1310 JORDAN GOO YAO WEN",
-      "1312 LIU DONGYANG",
-      "1313 MOHAMAD RUZAINI RAYYAN BIN MOHAMAD RIDUWAN",
-      "1314 NG CHEN FONG",
-      "1401 DANIEL TEO AN YI",
-      "1402 SYED MOHAMED FADIL BIN SYED NASIR",
-      "1403 MOHD NUR HAKEEM BIN MOHAMED HISHAMADI",
-      "1404 NG XIN ZHI BECKHAM",
-      "1405 MUHAMMAD AFIQ BIN ABDULLAH",
-      "1406 ETHAN STEPHEN",
-      "1407 MUHAMMAD RAFIQUE DANIEL BIN ABDULLAH",
-      "1408 OOI WOEI YOU",
-      "1409 SAI KARTHIK KRISHNAMOORTHY",
-      "1410 MUHAMMAD ASTYAR BIN MUHAMMAD RAZI",
-      "1411 HARRISON LOW XUEJUN",
-      "1412 YAP HAN YANG",
-      "1413 MOHAMED DALVI KALIMULA MOHAMED HIBATULLAH",
-      "1414 NGERN JING YI , COEN"
-    ];
+//     const cadetNames = [
+//       "1101 MUHAMMAD NUR SYAFIQ BIN SUWANDI",
+//       "1102 MOHAMED SHAFIQ BIN MOHAMED ZAINI",
+//       "1103 HENG JIAN AN",
+//       "1104 RISHVIN NAIR VINOTH KUMAR",
+//       "1105 LIM JIA PANG",
+//       "1106 MUHAMMAD RIDHALFI BIN MUHAMMAD RIDUAN",
+//       "1107 LOU JIA YING",
+//       "1109 THINESKUMAR KRISHNAN",
+//       "1110 AQIL ZUFAYRI BIN A RAMLI",
+//       "1111 THEY SHUN HI",
+//       "1112 NAING MIN HTET",
+//       "1113 MUHAMMAD FATREES BIN MOHAMED SAMSOR",
+//       "1114 ELIJAH ETHAN DAVID",
+//       "1202 MUHAMMAD HAZIQ BIN MASWAN",
+//       "1203 NGE YAO YONG",
+//       "1204 SOLIHIN SHAH BIN ISA",
+//       "1205 CALEB EDE",
+//       "1207 MUHAMMAD HAZIQ BIN RAHIZAM",
+//       "1208 QIU ZHIXIAN",
+//       "1209 SRIRAM BALASUBRAMIANAN",
+//       "1210 MOHAMED ANSAR MOHAMED ANWER ALI",
+//       "1211 NABEEL NERGIZ",
+//       "1212 YAP YONG QUAN",
+//       "1213 CHIA XIN RONG",
+//       "1214 ERIK LAU SHAO FENG",
+//       "1302 THIRUNISHVAREN S/O THIRUMENI SIVANANTHAM",
+//       "1304 AFI FAKRULLAH BIN MOHAMMAD",
+//       "1305 MUHAMMAD RANIEL BIN SAIFUL AHMAD",
+//       "1307 MUHAMMAD RYHAN BIN MASUNI",
+//       "1309 MUHAMMAD SYAKIR NURHAZIQ BIN NURMAN",
+//       "1310 JORDAN GOO YAO WEN",
+//       "1312 LIU DONGYANG",
+//       "1313 MOHAMAD RUZAINI RAYYAN BIN MOHAMAD RIDUWAN",
+//       "1314 NG CHEN FONG",
+//       "1401 DANIEL TEO AN YI",
+//       "1402 SYED MOHAMED FADIL BIN SYED NASIR",
+//       "1403 MOHD NUR HAKEEM BIN MOHAMED HISHAMADI",
+//       "1404 NG XIN ZHI BECKHAM",
+//       "1405 MUHAMMAD AFIQ BIN ABDULLAH",
+//       "1406 ETHAN STEPHEN",
+//       "1407 MUHAMMAD RAFIQUE DANIEL BIN ABDULLAH",
+//       "1408 OOI WOEI YOU",
+//       "1409 SAI KARTHIK KRISHNAMOORTHY",
+//       "1410 MUHAMMAD ASTYAR BIN MUHAMMAD RAZI",
+//       "1411 HARRISON LOW XUEJUN",
+//       "1412 YAP HAN YANG",
+//       "1413 MOHAMED DALVI KALIMULA MOHAMED HIBATULLAH",
+//       "1414 NGERN JING YI , COEN"
+//     ];
   
-    const batchPromises = cadetNames.map(name => 
-      addDoc(usersCollection, { 
-        name: name.trim(),
-        createdAt: Timestamp.now()
-      })
-    );
+//     const batchPromises = cadetNames.map(name => 
+//       addDoc(usersCollection, { 
+//         name: name.trim(),
+//         createdAt: Timestamp.now()
+//       })
+//     );
   
-    try {
-      await Promise.all(batchPromises);
-      toast({ 
-        title: "Success", 
-        description: `${cadetNames.length} cadets added to database!` 
-      });
-      console.log("All cadets successfully added!");
-    } catch (error) {
-      console.error("Error adding cadets:", error);
-      toast({ 
-        variant: "destructive", 
-        title: "Failed to populate users", 
-        description: "Check console for details." 
-      });
-    }
-  };
+//     try {
+//       await Promise.all(batchPromises);
+//       toast({ 
+//         title: "Success", 
+//         description: `${cadetNames.length} cadets added to database!` 
+//       });
+//       console.log("All cadets successfully added!");
+//     } catch (error) {
+//       console.error("Error adding cadets:", error);
+//       toast({ 
+//         variant: "destructive", 
+//         title: "Failed to populate users", 
+//         description: "Check console for details." 
+//       });
+//     }
+//   };
 
 
 export default function FitTracker() {
@@ -208,9 +208,9 @@ export default function FitTracker() {
 
     const { toast } = useToast();
 
-    useEffect(() => {
-        populateUsersIfEmpty();
-    }, []);
+    // useEffect(() => {
+    //     populateUsersIfEmpty();
+    // }, []);
 
     // --- User Handling ---
     const handleUserSelection = (userId: string) => {
