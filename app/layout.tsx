@@ -4,7 +4,7 @@ import "./globals.css";
 
 
 export const metadata: Metadata = {
-  title: "AWG MTR Tracker",
+  title: "MTR Tracker",
   description: "created by rev",
 };
 

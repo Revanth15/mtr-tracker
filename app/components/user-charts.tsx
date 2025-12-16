@@ -391,7 +391,9 @@ export default function UserCharts() {
                                 </CardHeader>
                                 <CardContent className="p-1">
                                     <div className="flex flex-col items-center space-y-1">
-                                        <p className="text-sm font-semibold text-blue-600">{card.value}</p>
+                                        <p className="text-sm font-semibold text-blue-600 text-center whitespace-normal break-words">
+                                            {card.value}
+                                        </p>
                                     </div>
                                 </CardContent>
                             </Card>
